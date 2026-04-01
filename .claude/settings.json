@@ -1,0 +1,39 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "& \".\\.github\\hooks\\log-hook.ps1\" -Event UserPromptSubmit"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "& \".\\.github\\hooks\\log-hook.ps1\" -Event PreToolUse"
+          }
+        ]
+      }
+    ],
+    "preToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "& \".\\.github\\hooks\\log-hook.ps1\" -Event preToolUse"
+          }
+        ]
+      }
+    ]
+  }
+}

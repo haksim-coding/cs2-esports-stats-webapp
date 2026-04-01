@@ -1,0 +1,71 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Maksim\\source\\repos\\cs2-esports\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{CD36BD5C-1AA8-0F29-FF2E-716EEC4AC17F}|cs2-esports.csproj|c:\\users\\maksim\\source\\repos\\cs2-esports\\models\\sampledataseeder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CD36BD5C-1AA8-0F29-FF2E-716EEC4AC17F}|cs2-esports.csproj|solutionrelative:models\\sampledataseeder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CD36BD5C-1AA8-0F29-FF2E-716EEC4AC17F}|cs2-esports.csproj|c:\\users\\maksim\\source\\repos\\cs2-esports\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CD36BD5C-1AA8-0F29-FF2E-716EEC4AC17F}|cs2-esports.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CD36BD5C-1AA8-0F29-FF2E-716EEC4AC17F}|cs2-esports.csproj|c:\\users\\maksim\\source\\repos\\cs2-esports\\models\\player.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CD36BD5C-1AA8-0F29-FF2E-716EEC4AC17F}|cs2-esports.csproj|solutionrelative:models\\player.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "SampleDataSeeder.cs",
+              "DocumentMoniker": "C:\\Users\\Maksim\\source\\repos\\cs2-esports\\Models\\SampleDataSeeder.cs",
+              "RelativeDocumentMoniker": "Models\\SampleDataSeeder.cs",
+              "ToolTip": "C:\\Users\\Maksim\\source\\repos\\cs2-esports\\Models\\SampleDataSeeder.cs",
+              "RelativeToolTip": "Models\\SampleDataSeeder.cs",
+              "ViewState": "AgIAAAIAAAAAAAAAAIAywBEAAAAqAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-01T22:10:14.479Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\Maksim\\source\\repos\\cs2-esports\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "C:\\Users\\Maksim\\source\\repos\\cs2-esports\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-01T22:09:34.003Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Player.cs",
+              "DocumentMoniker": "C:\\Users\\Maksim\\source\\repos\\cs2-esports\\Models\\Player.cs",
+              "RelativeDocumentMoniker": "Models\\Player.cs",
+              "ToolTip": "C:\\Users\\Maksim\\source\\repos\\cs2-esports\\Models\\Player.cs",
+              "RelativeToolTip": "Models\\Player.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-01T22:09:26.169Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
