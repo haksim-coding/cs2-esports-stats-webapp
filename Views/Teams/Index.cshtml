@@ -1,0 +1,84 @@
+@model IReadOnlyList<cs2_esports.Models.Team>
+@{
+    ViewData["Title"] = "Teams";
+}
+
+<div class="d-flex justify-content-between align-items-end mb-4">
+    <div>
+        <h1 class="h3 mb-1 text-primary">Teams Ranking</h1>
+        <p class="text-muted mb-0">Follow the world's best CS2 rosters.</p>
+    </div>
+</div>
+
+<div class="cs2-glass-card shadow-sm teams-table">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th class="ps-4">Rank</th>
+                    <th>Team</th>
+                    <th>Tag</th>
+                    <th>Country</th>
+                    <th>Founded</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var team in Model.OrderBy(t => t.WorldRanking))
+            {
+                var teamLogoPath = TeamLogoResolver.GetLogoPath(team.Name, team.Tag);
+                var rankClass = team.WorldRanking == 1 ? "rank-medal rank-medal-1" : team.WorldRanking == 2 ? "rank-medal rank-medal-2" : team.WorldRanking == 3 ? "rank-medal rank-medal-3" : "rank-medal rank-medal-default";
+                <tr class="clickable-row" data-bs-toggle="collapse" data-bs-target="#team-@team.Id" aria-expanded="false" aria-controls="team-@team.Id" role="button">
+                    <td class="ps-4 fw-bold"><span class="@rankClass">#@team.WorldRanking</span></td>
+                    <td>
+                        <a href="@Url.Action("Details", "Teams", new { id = team.Id })" class="team-link fw-semibold" onclick="event.stopPropagation();">
+                            @if (!string.IsNullOrWhiteSpace(teamLogoPath))
+                            {
+                                <img src="@Url.Content(teamLogoPath)" class="team-logo" alt="@team.Name logo" />
+                            }
+                            else
+                            {
+                                <span class="team-logo-fallback">@TeamLogoResolver.GetBadgeText(team.Name, team.Tag)</span>
+                            }
+                            <span>@team.Name</span>
+                        </a>
+                    </td>
+                    <td class="text-secondary">@team.Tag</td>
+                    <td>
+                        <img src="@CountryFlagHelper.GetFlagImageUrl(team.CountryCode)" alt="@team.CountryCode flag" class="country-flag-img country-flag--inline" loading="lazy" decoding="async" />
+                    </td>
+                    <td>
+                        <div class="d-flex justify-content-between align-items-center text-secondary">
+                            <span>@team.FoundedYear</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="text-muted" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg>
+                        </div>
+                    </td>
+                </tr>
+                <tr id="team-@team.Id" class="collapse team-collapse-row">
+                    <td colspan="5" class="p-0 border-0">
+                        <div class="team-players-panel px-4 py-2">
+                            <div class="team-roster-rail">
+                                @if (team.Players != null && team.Players.Any())
+                                {
+                                    @foreach (var player in team.Players)
+                                    {
+                                        <a href="@Url.Action("Details", "Players", new { id = player.Id })" class="team-roster-card" title="Open @player.Nickname profile">
+                                            <div class="team-roster-avatar">
+                                                <img src="~/images/default-avatar.svg" alt="@player.Nickname" />
+                                            </div>
+                                            <div class="team-roster-name text-truncate">@player.Nickname</div>
+                                        </a>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted ms-3 fst-italic">No active roster listed</span>
+                                }
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

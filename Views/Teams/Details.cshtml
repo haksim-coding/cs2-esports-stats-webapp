@@ -1,0 +1,121 @@
+@model cs2_esports.Models.Team
+@{
+    ViewData["Title"] = Model.Name + " - Team Overview";
+    var teamLogoPath = TeamLogoResolver.GetLogoPath(Model.Name, Model.Tag);
+}
+
+<!-- Header Section -->
+<div class="cs2-glass-card shadow-lg mb-4 border-top border-primary border-4 p-0 position-relative overflow-hidden">
+    
+    <!-- Active Roster Header Strip -->
+    @if (Model.Players != null && Model.Players.Any())
+    {
+        <div class="team-roster-banner border-bottom border-secondary p-3">
+            <div class="team-roster-rail mb-0 pb-1">
+                @foreach (var player in Model.Players.OrderBy(p => p.Role).ThenBy(p => p.Nickname))
+                {
+                    <a asp-controller="Players" asp-action="Details" asp-route-id="@player.Id" class="team-roster-card" title="Open @player.Nickname profile">
+                        <div class="team-roster-avatar">
+                            <img src="~/images/default-avatar.svg" alt="@player.Nickname" />
+                        </div>
+                        <div class="team-roster-content">
+                            <div class="team-roster-name text-truncate">@player.Nickname</div>
+                        </div>
+                    </a>
+                }
+            </div>
+        </div>
+    }
+
+    <div class="p-4 p-md-5">
+        <div class="row align-items-center position-relative z-1">
+            <div class="col-md-8">
+            <div class="d-flex align-items-center gap-4 mb-2 flex-wrap">
+                @if (!string.IsNullOrWhiteSpace(teamLogoPath))
+                {
+                    <img src="@Url.Content(teamLogoPath)" alt="@Model.Name logo" class="team-logo-inline team-logo-inline--large" />
+                }
+                else
+                {
+                    <span class="team-logo-fallback team-logo-inline--large">@TeamLogoResolver.GetBadgeText(Model.Name, Model.Tag)</span>
+                }
+                <div class="team-header-name-wrap">
+                    <h1 class="display-4 fw-bold text-white mb-0">@Model.Name</h1>
+                    <span class="text-info fs-3">[@Model.Tag]</span>
+                </div>
+            </div>
+            <p class="text-secondary fs-5 mb-4">
+                <i class="bi bi-geo-alt-fill text-muted me-1"></i> <img src="@CountryFlagHelper.GetFlagImageUrl(Model.CountryCode)" alt="@Model.CountryCode flag" class="country-flag-img country-flag--inline" loading="lazy" decoding="async" /> Founded in @Model.FoundedYear
+            </p>
+        </div>
+        <div class="col-md-4 text-md-end mt-4 mt-md-0">
+            <div class="d-inline-block text-center rounded bg-dark border border-secondary p-3 shadow">
+                <div class="text-uppercase text-secondary small fw-bold tracking-widest mb-1">World Rank</div>
+                <div class="display-5 fw-bold text-primary">#@Model.WorldRanking</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Row -->
+    <div class="row g-3 mt-4 mt-md-5 border-top border-secondary pt-4 position-relative z-1">
+        <div class="col-12 col-md-6">
+            <div class="text-secondary small text-uppercase">Prize Earnings</div>
+            <div class="fs-4 fw-semibold text-white">@Model.PrizeMoneyUsd.ToString("C0")</div>
+        </div>
+        <div class="col-12 col-md-6">
+            <div class="text-secondary small text-uppercase">Tournaments Played</div>
+            <div class="fs-4 text-accent mt-1">@(Model.Tournaments?.Count ?? 0)</div>
+        </div>
+    </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Achievements / Recent Events Panel -->
+    <div class="col-12">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h2 class="h5 mb-0 text-white fw-bold">Tournament History</h2>
+        </div>
+        
+        @if (Model.Tournaments != null && Model.Tournaments.Any())
+        {
+            <div class="table-responsive rounded border border-secondary mb-0 bg-dark team-history-table">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="cs2-table-head">
+                        <tr>
+                            <th class="border-0 ps-4">Event Name</th>
+                            <th class="border-0">Tier</th>
+                            <th class="border-0 text-end pe-4">Prize Pool</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var tourney in Model.Tournaments.OrderByDescending(t => t.PrizePoolUsd))
+                        {
+                            <tr class="clickable-row border-top border-secondary" onclick="window.location.href='@Url.Action("Details", "Events", new { id = tourney.Id })'">
+                                <td class="ps-4 py-3">
+                                    <div class="fw-semibold text-light mb-1">@tourney.Name</div>
+                                    <div class="small text-muted">
+                                        <i class="bi bi-calendar-event me-1"></i> @tourney.StartDateUtc.ToString("MMM yyyy") 
+                                        &nbsp;&bull;&nbsp; <img src="@CountryFlagHelper.GetFlagImageUrl(tourney.EventVenue?.CountryCode)" alt="@tourney.EventVenue?.CountryCode flag" class="country-flag-img country-flag--inline" loading="lazy" decoding="async" /> @tourney.EventVenue?.City
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge @(tourney.Tier == cs2_esports.Models.EventTier.S ? "event-tier-gold" : tourney.Tier == cs2_esports.Models.EventTier.A ? "event-tier-green" : "event-tier-neutral") fw-bold px-2 py-1">@tourney.Tier</span>
+                                </td>
+                                <td class="text-end pe-4 fw-bold text-accent">
+                                    @tourney.PrizePoolUsd.ToString("C0")
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+             <div class="cs2-glass-card p-5 text-center border border-secondary">
+                 <p class="text-muted fs-5 mb-0">No documented event history for @Model.Name yet.</p>
+             </div>
+        }
+    </div>
+</div>

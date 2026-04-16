@@ -1,0 +1,76 @@
+﻿@model cs2_esports.Models.Event
+@{
+    ViewData["Title"] = "Event Details";
+}
+
+<div class="esports-card mb-4 p-4">
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4" style="border-color: #2d3340 !important">
+        <h1 class="h2 text-light fw-bold mb-0">@Model.Name</h1>
+        <span class="badge @(Model.Tier == cs2_esports.Models.EventTier.S ? "event-tier-gold" : Model.Tier == cs2_esports.Models.EventTier.A ? "event-tier-green" : "event-tier-neutral") fs-6 px-3 py-2">@Model.Tier</span>
+    </div>
+
+    <div class="row text-center mb-2">
+        <div class="col-md-3 border-end" style="border-color: #2d3340 !important">
+            <p class="text-muted text-uppercase small mb-1 fw-bold">Organizer</p>
+            <p class="text-light fs-5">@Model.Organizer</p>
+        </div>
+        <div class="col-md-3 border-end" style="border-color: #2d3340 !important">
+            <p class="text-muted text-uppercase small mb-1 fw-bold">Prize Pool</p>
+            <p class="text-success fs-5">@Model.PrizePoolUsd.ToString("C0")</p>
+        </div>
+        <div class="col-md-3 border-end" style="border-color: #2d3340 !important">
+            <p class="text-muted text-uppercase small mb-1 fw-bold">Location</p>
+            <p class="text-light fs-5"><img src="@CountryFlagHelper.GetFlagImageUrl(Model.EventVenue?.CountryCode)" alt="@Model.EventVenue?.CountryCode flag" class="country-flag-img country-flag--inline" loading="lazy" decoding="async" /> @Model.EventVenue?.City</p>
+        </div>
+        <div class="col-md-3">
+            <p class="text-muted text-uppercase small mb-1 fw-bold">LAN Type</p>
+            <p class="text-light fs-5">@(Model.IsLan ? "LAN" : "Online")</p>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="esports-card h-100 p-4">
+            <h2 class="h5 text-info mb-4 border-bottom pb-2" style="border-color: #2d3340 !important">Attending Teams</h2>
+            <div class="list-group list-group-flush bg-transparent">
+                @foreach (var team in Model.Teams.OrderBy(t => t.WorldRanking))
+                {
+                    var teamLogoPath = TeamLogoResolver.GetLogoPath(team.Name, team.Tag);
+                    <a class="list-group-item list-group-item-action bg-transparent text-light border-secondary team-mention-link" style="border-color: #2d3340 !important" asp-controller="Teams" asp-action="Details" asp-route-id="@team.Id">
+                        <span class="text-muted me-2">#@team.WorldRanking</span>
+                        @if (!string.IsNullOrWhiteSpace(teamLogoPath))
+                        {
+                            <img src="@Url.Content(teamLogoPath)" class="team-logo" alt="@team.Name logo" />
+                        }
+                        else
+                        {
+                            <span class="team-logo-fallback">@TeamLogoResolver.GetBadgeText(team.Name, team.Tag)</span>
+                        }
+                        <strong>@team.Name</strong>
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="esports-card h-100 p-4">
+            <h2 class="h5 text-info mb-4 border-bottom pb-2" style="border-color: #2d3340 !important">Discussion</h2>
+            @if (Model.ForumThreads.Count == 0)
+            {
+                <div class="text-muted text-center pt-4">No discussions for this event yet.</div>
+            }
+            else
+            {
+                <div class="list-group list-group-flush bg-transparent">
+                    @foreach (var thread in Model.ForumThreads.OrderByDescending(f => f.LastUpdatedAtUtc))
+                    {
+                        <a class="list-group-item list-group-item-action bg-transparent text-light border-secondary" style="border-color: #2d3340 !important" asp-controller="Forums" asp-action="Details" asp-route-id="@thread.Id">
+                            @thread.Title
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>

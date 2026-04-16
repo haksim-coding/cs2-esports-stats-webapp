@@ -1,32 +1,62 @@
-﻿<!DOCTYPE html>
+﻿@inject IForumRepository ForumRepository
+@{
+    var loggedInForumUserId = Context.Session.GetInt32("ForumUserId");
+    var loggedInForumUser = loggedInForumUserId.HasValue ? ForumRepository.GetForumUserById(loggedInForumUserId.Value) : null;
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - cs2_esports</title>
+    <title>@ViewData["Title"] - CS2Scope</title>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/cs2_esports.styles.css" asp-append-version="true" />
 </head>
-<body>
+<body class="bg-dark text-light">
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-lg navbar-toggleable-sm navbar-dark bg-black border-bottom border-secondary mb-4 cs2-navbar">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">cs2_esports</a>
+                <a class="navbar-brand fw-bold cs2-brand d-inline-flex align-items-center" asp-area="" asp-controller="Home" asp-action="Index">
+                    <span class="text-info cs2-brand-mark">&#8982;</span><span>CS2<span class="text-primary">Scope</span></span>
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+                <div class="navbar-collapse collapse d-sm-inline-flex align-items-center cs2-navbar-grid">
+                    <ul class="navbar-nav me-auto ms-lg-4 cs2-nav-tabs align-items-stretch mb-3 mb-lg-0 mt-3 mt-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link text-light nav-hover" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                            <a class="nav-link text-light nav-hover" asp-area="" asp-controller="Teams" asp-action="Index">Teams</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light nav-hover" asp-area="" asp-controller="Events" asp-action="Index">Events</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light nav-hover" asp-area="" asp-controller="Players" asp-action="Index">Players</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light nav-hover" asp-area="" asp-controller="Forums" asp-action="Index">Forums</a>
                         </li>
                     </ul>
+                    <div class="cs2-navbar-auth ms-auto d-flex align-items-center gap-2 mt-3 mt-sm-0">
+                        @if (loggedInForumUser is null)
+                        {
+                            <a class="btn btn-outline-info rounded px-3" asp-area="" asp-controller="Auth" asp-action="Login">Login</a>
+                            <a class="btn btn-primary rounded px-3" asp-area="" asp-controller="Auth" asp-action="Register">Register</a>
+                        }
+                        else
+                        {
+                            <a class="navbar-welcome-pill" asp-controller="Auth" asp-action="Logout" onclick="return confirm('Logout?');">
+                                <span class="welcome-text">Welcome, <span class="navbar-user-name">@loggedInForumUser.Username</span></span>
+                                <span class="logout-text">Logout?</span>
+                            </a>
+                        }
+                    </div>
                 </div>
             </div>
         </nav>
@@ -39,7 +69,7 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2026 - cs2_esports - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            &copy; 2026 - CS2Scope
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

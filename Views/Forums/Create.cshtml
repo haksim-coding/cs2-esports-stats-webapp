@@ -1,0 +1,68 @@
+@model cs2_esports.Models.ForumCreatePageViewModel
+@{
+    ViewData["Title"] = "Create Thread";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10 mt-3 pt-3">
+        <div class="esports-card mb-5">
+            <div class="d-flex align-items-center mb-4 pb-3" style="border-bottom: 2px solid #2d3340;">
+                <h2 class="text-light fw-bold m-0">Start New Thread</h2>
+            </div>
+            
+            @if (Model.CurrentUser == null)
+            {
+                <div class="alert alert-secondary bg-dark text-muted border-secondary text-center">
+                    <p>You must be logged in to create a thread.</p>
+                    <a asp-controller="Auth" asp-action="Login" class="btn btn-outline-info">Login</a>
+                    <a asp-controller="Auth" asp-action="Register" class="btn btn-primary ms-2">Register</a>
+                </div>
+            }
+            else
+            {
+                <form asp-action="Create" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-4 small fw-semibold bg-dark p-2 rounded border border-danger"></div>
+                    
+                    <div class="mb-4">
+                        <label asp-for="Input.Title" class="form-label text-info fw-semibold">Thread Title</label>
+                        <input asp-for="Input.Title" class="form-control cs2-input py-2" placeholder="Descriptive title..." />
+                        <span asp-validation-for="Input.Title" class="text-danger small mt-1 d-block"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label asp-for="Input.Category" class="form-label text-info fw-semibold">Category</label>
+                            <select asp-for="Input.Category" class="form-select cs2-input" asp-items="Html.GetEnumSelectList<ForumCategory>()">
+                                <option value="">-- Choose Category --</option>
+                            </select>
+                            <span asp-validation-for="Input.Category" class="text-danger small mt-1 d-block"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Input.TournamentId" class="form-label text-info fw-semibold">Related Event <span class="text-muted small fw-normal">(Optional)</span></label>
+                        <select asp-for="Input.TournamentId" class="form-select cs2-input" asp-items="@(new Microsoft.AspNetCore.Mvc.Rendering.SelectList(Model.Events, "Id", "Name"))">
+                            <option value="">-- Select Event --</option>
+                        </select>
+                        <span asp-validation-for="Input.TournamentId" class="text-danger small mt-1 d-block"></span>
+                    </div>
+
+                    <div class="mb-5">
+                        <label asp-for="Input.Content" class="form-label text-info fw-semibold">Content</label>
+                        <textarea asp-for="Input.Content" class="form-control cs2-input" rows="8" placeholder="What's on your mind?"></textarea>
+                        <span asp-validation-for="Input.Content" class="text-danger small mt-1 d-block"></span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top" style="border-color: #2d3340 !important">
+                        <a asp-action="Index" class="text-muted text-decoration-none">Back to Forums</a>
+                        <button type="submit" class="btn btn-primary px-5 py-2 fw-bold text-uppercase">Post Thread</button>
+                    </div>
+                </form>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,4 +1,4 @@
-namespace cs2_esports.Models;
+﻿namespace cs2_esports.Models;
 
 public class EventVenue
 {
@@ -10,5 +10,6 @@ public class EventVenue
     public bool IsIndoor { get; set; }
     public string SurfaceType { get; set; } = string.Empty;
 
-    public List<Tournament> Tournaments { get; set; } = new();
+    public List<Event> Tournaments { get; set; } = new();
 }
+

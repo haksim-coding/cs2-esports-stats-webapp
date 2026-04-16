@@ -1,0 +1,50 @@
+@model cs2_esports.Models.LoginInputModel
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="row justify-content-center align-items-center mt-5">
+    <div class="col-lg-4 col-md-6 col-sm-8 mt-5">
+        <div class="auth-card auth-card--login p-0 overflow-hidden">
+            <div class="auth-split-panel">
+                <div class="auth-panel-copy">
+                    <div class="text-uppercase text-info small fw-bold tracking-widest mb-2">CS2Scope Access</div>
+                    <h2 class="text-white fw-bold mb-3">Login</h2>
+                    <p class="text-muted mb-0">Track rosters, events, and forums from one account.</p>
+                </div>
+                <div class="auth-panel-accent"></div>
+            </div>
+
+            <form asp-action="Login" method="post" class="p-4 p-md-5">
+                <input type="hidden" name="returnUrl" value="@(ViewData["ReturnUrl"] ?? string.Empty)" />
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-4 small fw-semibold auth-validation"></div>
+                
+                <div class="mb-4">
+                    <label asp-for="Username" class="form-label text-info fw-semibold text-uppercase small">Username</label>
+                    <input asp-for="Username" class="form-control" placeholder="Enter your username..." />
+                    <span asp-validation-for="Username" class="text-danger small mt-1 d-block"></span>
+                </div>
+
+                <div class="mb-5">
+                    <label asp-for="Password" class="form-label text-info fw-semibold text-uppercase small">Password</label>
+                    <input asp-for="Password" type="password" class="form-control" placeholder="••••••••" />
+                    <span asp-validation-for="Password" class="text-danger small mt-1 d-block"></span>
+                </div>
+
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-primary py-2 fw-bold text-uppercase fs-6">
+                        Login
+                    </button>
+                </div>
+                
+                <div class="text-center mt-4 pt-3 border-top auth-footer-border">
+                    <p class="text-muted small mb-0">Don't have an account? <a asp-action="Register">Register here</a></p>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

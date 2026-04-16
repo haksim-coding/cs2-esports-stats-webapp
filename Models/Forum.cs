@@ -1,4 +1,4 @@
-namespace cs2_esports.Models;
+﻿namespace cs2_esports.Models;
 
 public class Forum
 {
@@ -16,5 +16,8 @@ public class Forum
     public ForumUser? Author { get; set; }
 
     public int? TournamentId { get; set; }
-    public Tournament? Tournament { get; set; }
+    public Event? Event { get; set; }
+
+    public List<ForumComment> Comments { get; set; } = new();
 }
+

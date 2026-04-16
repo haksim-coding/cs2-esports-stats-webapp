@@ -6,13 +6,20 @@
 			"type": "shell",
 			"command": "powershell.exe",
 			"args": [
+				"-NoProfile",
 				"-ExecutionPolicy",
 				"Bypass",
 				"-File",
-				".github\\hooks\\monitor-copilot-chat.ps1"
+				"${workspaceFolder}\\.github\\hooks\\monitor-copilot-chat.ps1"
 			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
 			"isBackground": true,
-			"runOn": "folderOpen",
+			"runOptions": {
+				"runOn": "folderOpen",
+				"instanceLimit": 1
+			},
 			"presentation": {
 				"echo": false,
 				"reveal": "silent",

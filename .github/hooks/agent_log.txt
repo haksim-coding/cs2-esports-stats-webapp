@@ -42,3 +42,134 @@ Great, now lets say I've never used Git properly before, how would I push this c
 i get this error fatal: not a git repository (or any of the parent directories): .git
 ----------------
 
+
+LAB2
+
+
+[2026-04-15 00:00:00.000] [SessionBackfill] [CopilotPrompt]
+This is the next task we have on our hands. Create web pages to view all the data we have in our app for now, and can you turn the SampleDataSeeder thing we have going now to a MockRepository kind of solution so its easier to switch to a real data source later on. If I understand the task correctly we need to have a webpage to view all teams, events, players (in alphabetical order) and forums , and then on the teams page can you make it that when a team row is clicked that it opens a dropdown with all five players, kinda like here: https://www.hltv.org/ranking/teams/2026/april/13. Make the homepage very basic for now, just give the site a name of "CS2Scope".
+----------------
+[2026-04-15 00:00:01.000] [SessionBackfill] [CopilotPrompt]
+can you rename the toruanment and tournamenttier.cs files to event and eventtier so it matches the repository name, thats kinda importing in MVC no?
+----------------
+[2026-04-15 00:00:02.000] [SessionBackfill] [CopilotPrompt]
+Its fine for now. Now the next very important part of the task is to create a sub-agent for UI. If i recall correctly I need to create a text file with all the instructions for the new agent and then make you somehow use it, can you walk me through that process?
+----------------
+[2026-04-15 00:00:00.000] [CopilotPrompt]
+Add a login button in the top right and make it possible for the user to create and comment on forums, and make sure to delegate all the UI/UX work to the UI-UX agent
+----------------
+[2026-04-15 00:00:00.000] [CopilotPrompt]
+First of all the chat is not being logged so fix that and put my first chat in the log file.
+
+The text is not visible because its almost the same color as the background on all the main pages, and the login page doesnt need to be so cyberpunk themed, thats not the theme of the website so tell that to UI/UX agent and make it fix it. Also make him change the layout of the events page to look like: https://www.hltv.org/events and the player page to look like https://www.hltv.org/players as close as possible.
+
+Also make it that its not possible to create a forum nor comment if the user is not logged in and in the message saying they need to login make a hyperlink to the register page which u need to create
+----------------
+
+[2026-04-15 23:22:14.203] [CopilotPrompt]
+The Teams, Forums, Players and Events tab still have a white background with barely readable text, tell the UI/UX agent to fix that, it looks out of place, make it more fitting to the style I want. Remove the details button on all pages and make it that clicking the row with the entity takes you to the details page.
+
+Teams also need a detailed page with all their previous achievements and more information, remove the prize pool from the current page and make it that when the team name is clicked it takes you to that new detailed teams page (also make sure this is logged properly with the correct timestamp)
+
+----------------
+[2026-04-15 23:33:43.022] [CopilotPrompt]
+
+Where did the drop down go in the teams page that shows all the players. On hltv it just shows their name and picture, do it in that style and for the picture just use a default avatar for now and only when the TEAM NAME is clicked make it go to the detailed teams page. All UI tasks should be forwareded to the UI specialist
+----------------
+
+[2026-04-16 14:59:15.137] [CopilotPrompt] [RequestId: request_8812433b-65eb-4429-b4bd-4efb8cb0822a]
+The white background on players, teams, events and forums is still there, tell the UI/UX specialist to fix that and make it more seemless. Give him the pasted image and tell him to make the default avatars all the same height and to strech them to the full bar length just like in the image. The colors merging with the background should be an example for all the other pages with the white background still, no white anymore please. Also, I added team logos SVGs so make sure they are placed everywhere where the team is mentioned in a meaningful way, and also on the teams page the team name and logo should be a link to the team details page, whilst clicking anywhere else on the row should open the player window
+----------------
+
+[2026-04-16 15:12:10.225] [CopilotPrompt] [RequestId: request_dc8ff419-0fd9-42e8-90a0-c2cead27efce]
+the team page still doesnt show all the players in one row, maybe just show the username and the picture (the default one for now) so it looks very similiar to the one on the image i sent you earlier, of course let the UI/UX speciliast do the UI work
+----------------
+
+[2026-04-16 15:17:34.312] [CopilotPrompt] [RequestId: request_33c7fcf9-8673-45cb-a6fe-dc1aeb8dc0f2]
+much better now but can the username be below the avatar like in the screenshot, remove the "Player profile" string and just make the whole username + picture card clickable to the players profile.
+
+Also, on the team details page make the logo bigger so its not dwarfed by the team name and on the active roster tab below the name and the rating are mashed together, put the rating below the full name of the player, also tell the UI/UX specialist to turn the background of the S tier event to gold as well as all the other UI changes
+----------------
+
+[2026-04-16 15:32:16.658] [CopilotPrompt] [RequestId: request_ebb045a4-df37-4b54-a894-773489b1e492]
+The team dropdown is almost ready, if they dont all fit to just center them to the middle of the row so it looks nicer and feel free to make the pictures higher because it looks like they are cropped very weirdly. Also the active roster on the team details page is still kinda messed up, can you make it that they are above the team logo and name just like on HLTV (reference the screenshot i gave you of team vitality) and remove the active roster tab then. Also, is it possible to replace the country tags with actual flags somehow? Deleagte everything UI releated to the UI/UX specialist 
+----------------
+
+[2026-04-16 15:51:56.018] [CopilotPrompt] [RequestId: request_7a457f72-6024-4eb9-9049-8e53647c6224]
+Great, also I realized that when the tier event is S it is not gold on the teams detail page, also the remove the roster lock and active players data from that page and change the tournaments event string to tournaments played and then just the number below.
+
+Also tell the UI specialist to center the navbar to the middle of the screen and make it a bit bigger with horizontal lines in between options to look like buttons. On the teams view page make the number 1,2 and 3 teams gave gold silver and bronze backgrounds on the world rank box respectively. Also tell him to come up with a creative abstract background for the roster above the team name.
+----------------
+
+[2026-04-16 15:57:02.134] [CopilotPrompt] [RequestId: request_8d967a5f-042b-43d4-ae6a-b3e125da714a]
+Great, also I realized that when the tier event is S it is not gold on the teams detail page, also the remove the roster lock and active players data from that page and change the tournaments event string to tournaments played and then just the number below.
+
+Also tell the UI specialist to center the navbar to the middle of the screen and make it a bit bigger with horizontal lines in between options to look like buttons. On the teams view page make the number 1,2 and 3 teams gave gold silver and bronze backgrounds on the world rank box respectively. Also tell him to come up with a creative abstract background for the roster above the team name.
+
+Remove the navigation part from all sites that have it, makes it look bootsrap-y.
+The scope near the CS2SCope logo should be a little bit bigger to match the font size.
+
+Is it possible for you to recolor the team vitality logo to full yellow instead of pure black?And on the teams, players, events pages remove the gray counter on the top right of the table.
+
+Tell the UI specialist to change the background so its not a solid color, maybe with some abstract art but that it still fits the theme of the website.
+
+Also, the country codes are still exactly that, not the image of the flag, is it possible for you to fix that?
+----------------
+
+[2026-04-16 16:18:22.475] [CopilotPrompt] [RequestId: request_e8a9652a-ddd3-4f83-8bcb-e65b946ffa85]
+Looks amazing now, but the login and register buttons should stay seperated from the main navigation bar so return them to their look before the previous update. Also, on the events,players and forums sites the first row of the table with the descriptions of the rows is still an ugly grey colour that doesnt fit the color scheme, same thing on the team details page with the tournament history table, make the color stand out a bit more and that it fits the colors surounding it. The glowing scope near the webiste logo should still be a bit bigger. Also on the tournament history tab remove the blue recent box on the right located on the team details page.
+
+Give all the UI changes to the UI specialist so u can check the Rating2 value of the players, they are all 1,1 but that doesnt look nice so can you fluctuate that a bit, make in game leaders a bit lower and star players shine a bit more.
+
+Also would it be possible for you to add a bit more tournaments, dont make everything S tier and dont include all teams in all of them, 4 more should be enough. A tier should be green and B or below dont have any special color. Make the coloring consisent like you did with S tier tournaments.
+----------------
+
+[2026-04-16 16:40:17.577] [CopilotPrompt] [RequestId: request_82e8135a-7895-4f55-a3fb-3ee51e29ac02]
+the navbar should not go through the whole screen, it should end at home and forums, the rounded edges i mean. The scope around the logo still looks a little bit weird, too far from the text and too small.
+
+The events directory should be renamed to just Events for now, on the event page, the player database should be renamed to Active Players on the players page.
+Also the timestamps on some places are in croatian, like my system language or something, make it consistenly english across the whole site.
+On the forums details page the "You must be logged in to reply" box is a weird gray color, make it consistent with the rest of the site. Also if the rating of a player on the players detail page is below 1.00 make it red, otherwise green.
+
+The login and register pages look a little too basic, tell the UI specialist to be a little more creative and just make the layout a tad bit different, it looks very boilerplate now, also deleage all the UI tasks to the said agent.
+
+And when a user is actually logged in instead of the login and register buttons display his username and welcome him
+----------------
+
+[2026-04-16 16:54:26.328] [CopilotPrompt] [RequestId: request_394e0fea-9a52-485f-82ba-7fd5da0642fb]
+as you can see the navbar is not correctly centered, make it in line with the CS2Scope text here in the screenshot, also when a user is logged in make it that when the user hovers the mouse over the welcome text it turnes a red-ish color and says "Logout?" and when clicked it logs the user out, of course. Maybe even a pop up to ask them if they are sure.
+
+Also, in the second pasted image, you can see the hint text in the text box on the forum details page is not very readable, the same problem persists on the login and register page, make the text brighter on all those pages.
+
+The reply system doesnt work but create thread one does, fix it so users can comment on posts, everyting UI releated should be handled by the UI/UX specialist
+----------------
+
+[2026-04-16 17:04:57.307] [CopilotPrompt] [RequestId: request_52f12283-ef12-4a5e-a605-2280ada864e9]
+The changes you added added a few bugs, the forum comment section has this weird red box (first image) fix that, and when hovering over the welcome, username part it glitches out when the cursor is on the left side of the button, fix that, if it would be easier make it so the user needs to hover over the username only for the logout button to appear not the whole thing
+also on the image 3 you see that the navbar is still not centered correctly, please make it that it is in the middle
+----------------
+
+[2026-04-16 17:13:59.495] [CopilotPrompt] [RequestId: request_91640ad3-99bc-4823-86a6-d888a7b5d004]
+Alright, now tell the UI/UX to make the logout button not glitch out because i need it to turn to Logout? as soon as the user hovers over the button, not just the username this time.
+
+Also I need him to create a custom home page, I thought of adding the most recent upcoming tournaments, like top 3 upcoming ones in like a box, the 3 best players at the moment (look at the rating for now), tell him to get creative, maybe add some fire in like the sense the players are on fire or something like that, and the top 3 best teams at the moment, maybe in like a podium looking graphic if possible, make sure everything placed on the home page is visually pleasing and that the layout makes sense, if the user is logged in it can also welcome him on the home page too, and tell him that he needs to fix the navbar centering issue
+----------------
+
+[2026-04-16 17:29:25.311] [CopilotPrompt] [RequestId: request_71cfecc0-8ef6-4bd2-b6e5-982f7044769d]
+looks great but tell the UI specialist to fix the weird rendering issue on team spirit as they are first place and the gold lighting doesnt fit the text as shown in the screenshot.also in the second screenshot the scope is not alligned correctly with the logo so tell him to fix that too. The navbar is not centered again so just move it to the left as it was before but add an abstract background or something, make it look a little bit more interesting with the colors and everything. Also on the welcome back, username div on the home page remove the welcome back so the welcomes are not repeated and just tell the user they are logged in as {username} and add a button on the right to create a forum post
+----------------
+
+[2026-04-16 17:38:49.532] [CopilotPrompt] [RequestId: request_16c674e7-e2e6-4b51-b3ab-811919d67133]
+On the home page make the players, teams and events clickable, on the global elite teams card change the color from pink to another one more fitting to the theme. Also dont forget to color the event tiers on the home page with the upcoming events, and on the players on fire card it shouldt be full leaderbord but view all players
+
+All UI tasks should be delegated to the UI/UX specialist and he should also add a bit different color background on the navbar behind the buttons, maybe even some abstract art
+----------------
+
+[2026-04-16 17:44:17.350] [CopilotPrompt] [RequestId: request_91786149-d689-4aa9-a5a9-936b6c1c694b]
+A tier should be green not red on the home page, and dont color the first place team in the color of the card leave it like the rest UI/UX agent
+----------------
+
+[2026-04-16 17:48:28.228] [CopilotPrompt] [RequestId: request_29179688-af4c-4727-8d02-cf4b29fa815f]
+Now the UI agent should make the View rankings button do some effect when hovered over like the rest and on the active players site make the background of the role div also black just like the team one
+----------------
+

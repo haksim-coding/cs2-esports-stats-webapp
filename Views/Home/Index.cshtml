@@ -1,8 +1,281 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model cs2_esports.Models.HomeViewModel
+@using cs2_esports.Helpers
+
+@{
+    ViewData["Title"] = "Home";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+@if (Model.LoggedInUser != null)
+{
+    <div class="alert alert-info border-info cs2-glass-card d-flex align-items-center justify-content-between mb-5 flex-wrap gap-3" role="alert">
+        <div class="d-flex align-items-center">
+            <span style="font-size: 1.5rem; margin-right: 12px; line-height: 1;">👋</span>
+            <span class="text-light fw-semibold" style="font-size: 1.1rem;">
+                Logged in as <span class="text-info fw-bold">@Model.LoggedInUser.Username</span>
+            </span>
+        </div>
+        <a asp-controller="Forums" asp-action="Create" class="btn cs2-btn-glow px-4 py-2 rounded-pill fw-bold" style="background: linear-gradient(135deg, #7C3AED, #38BDF8); box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);">
+            + Create Forum Post
+        </a>
+    </div>
+}
+
+<div class="text-center py-4 mb-5 hero-section">
+    <h1 class="display-3 fw-bold mb-3 cs2-brand d-flex align-items-center justify-content-center gap-2">
+        <span class="text-info cs2-brand-mark" style="font-size: 3.5rem; line-height: 0.8; transform: translateY(-5%);">&#8982;</span>
+        <span style="line-height: 1; transform: translateY(5%);">CS2<span class="text-primary">Scope</span></span>
+    </h1>
+    <p class="lead text-muted mb-4 mx-auto" style="max-width: 600px;">
+        The elite platform for competitive CS2 analytics, delivering precision data and tracking for the best players, teams, and tournaments worldwide.
+    </p>
+    <div class="d-flex flex-wrap justify-content-center gap-3">
+        <a class="btn btn-outline-info rounded-pill px-4" asp-controller="Teams" asp-action="Index">Top Teams</a>
+        <a class="btn btn-outline-primary rounded-pill px-4" asp-controller="Events" asp-action="Index">Live Events</a>
+        <a class="btn btn-outline-light rounded-pill px-4" asp-controller="Players" asp-action="Index">Player Rankings</a>
+    </div>
 </div>
+
+<div class="row g-5">
+    <!-- Upcoming Events -->
+    <div class="col-lg-4">
+        <div class="cs2-glass-card h-100 p-4 neon-border-blue">
+            <h3 class="fw-bold mb-4 text-primary">
+                <span class="text-info">📅</span> Upcoming Events
+            </h3>
+            <div class="d-flex flex-column gap-3">
+                @foreach (var ev in Model.UpcomingEvents)
+                {
+                    var tierBadgeClass = ev.Tier switch {
+                        cs2_esports.Models.EventTier.S => "bg-warning text-dark",
+                        cs2_esports.Models.EventTier.A => "bg-success text-white",
+                        cs2_esports.Models.EventTier.B => "bg-primary text-white",
+                        cs2_esports.Models.EventTier.C => "bg-secondary text-white",
+                        _ => "bg-info text-dark"
+                    };
+
+                    <a href="@Url.Action("Details", "Events", new { id = ev.Id })" class="text-decoration-none d-block p-3 rounded-3 event-card-link" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.1); transition: all 0.2s ease;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h5 class="mb-0 text-light fw-bold text-truncate me-2" style="font-size: 1.1rem; max-width: 180px;">@ev.Name</h5>
+                            <span class="badge @tierBadgeClass fw-bold text-nowrap">@ev.Tier Tier</span>
+                        </div>
+                        <p class="text-muted small mb-1">
+                            @ev.StartDateUtc.ToString("MMM dd") - @ev.EndDateUtc.ToString("MMM dd, yyyy")
+                        </p>
+                        <div class="text-info small fw-bold">
+                            $@ev.PrizePoolUsd.ToString("N0") Prize Pool
+                        </div>
+                    </a>
+                }
+            </div>
+            <div class="mt-4 text-center">
+                <a asp-controller="Events" asp-action="Index" class="btn btn-sm btn-outline-info rounded-pill w-100">View All Events</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Players (On Fire) -->
+    <div class="col-lg-4">
+        <div class="cs2-glass-card h-100 p-4 neon-border-orange">
+            <h3 class="fw-bold mb-4" style="color: #f97316;">
+                <span style="color: #f97316;">🔥</span> Players on Fire
+            </h3>
+            <div class="d-flex flex-column gap-3">
+                @foreach (var player in Model.TopPlayers)
+                {
+                    <a href="@Url.Action("Details", "Players", new { id = player.Id })" class="text-decoration-none d-block p-3 rounded-3 position-relative overflow-hidden player-fire-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(249, 115, 22, 0.2); transition: all 0.2s ease;">
+                        <div class="fire-glow"></div>
+                        <div class="d-flex justify-content-between align-items-center position-relative" style="z-index: 2;">
+                            <div class="d-flex align-items-center gap-2">
+                                <img src="@CountryFlagHelper.GetFlagImageUrl(player.CountryCode)" alt="@player.CountryCode flag" class="country-flag-img" loading="lazy" decoding="async" />
+                                <div>
+                                    <h5 class="mb-0 text-light fw-bold" style="font-size: 1.2rem; text-shadow: 0 0 5px rgba(249, 115, 22, 0.8);">@player.Nickname</h5>
+                                    <small class="text-muted d-block text-truncate" style="max-width: 140px;">@player.FullName</small>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="badge rounded-pill" style="background: linear-gradient(135deg, #ea580c, #c2410c); font-size: 1rem; box-shadow: 0 0 10px rgba(234, 88, 12, 0.5);">
+                                    @player.Rating2.ToString("F2")
+                                </div>
+                                <div class="small text-muted mt-1">Rating</div>
+                            </div>
+                        </div>
+                    </a>
+                }
+            </div>
+            <div class="mt-4 text-center">
+                <a asp-controller="Players" asp-action="Index" class="btn btn-sm btn-outline-warning rounded-pill w-100" style="color: #f97316; border-color: #f97316;">View All Players</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Teams Podium -->
+    <div class="col-lg-4">
+        <div class="cs2-glass-card h-100 p-4 neon-border-cyan">
+            <h3 class="fw-bold mb-4" style="color: #22d3ee !important;">
+                <span style="color: #06b6d4;">🏆</span> Global Elite Teams
+            </h3>
+            
+            <div class="podium-container mt-5">
+                @if (Model.TopTeams.Count >= 3)
+                {
+                    <a href="@Url.Action("Details", "Teams", new { id = Model.TopTeams[1].Id })" class="podium-item podium-second text-decoration-none" style="transition: all 0.2s ease;">
+                        @{
+                            var secondLogoPath = TeamLogoResolver.GetLogoPath(Model.TopTeams[1].Name, Model.TopTeams[1].Tag);
+                        }
+                        <div class="team-info position-relative" style="z-index: 2;">
+                            <img src="@(string.IsNullOrWhiteSpace(secondLogoPath) ? Url.Content("~/images/default-avatar.svg") : Url.Content(secondLogoPath))" alt="@Model.TopTeams[1].Name" class="podium-logo mb-1" />
+                            <div class="fw-bold text-light small text-center w-100">@Model.TopTeams[1].Name</div>
+                        </div>
+                        <div class="podium-block silver-block position-relative">
+                            <span class="podium-rank">2</span>
+                        </div>
+                    </a>
+
+                    <a href="@Url.Action("Details", "Teams", new { id = Model.TopTeams[0].Id })" class="podium-item podium-first text-decoration-none" style="transition: all 0.2s ease;">
+                        @{
+                            var firstLogoPath = TeamLogoResolver.GetLogoPath(Model.TopTeams[0].Name, Model.TopTeams[0].Tag);
+                        }
+                        <div class="team-info position-relative" style="z-index: 2; padding-top: 5px;">
+                            <img src="@(string.IsNullOrWhiteSpace(firstLogoPath) ? Url.Content("~/images/default-avatar.svg") : Url.Content(firstLogoPath))" alt="@Model.TopTeams[0].Name" class="podium-logo mb-1" style="width: 55px; height: 55px;" />
+                            <div class="fw-bold text-light text-center w-100 glow-text" style="font-size: 0.95rem; filter: drop-shadow(0 0 4px #000);">@Model.TopTeams[0].Name</div>
+                        </div>
+                        <div class="podium-block gold-block position-relative">
+                            <div class="gold-glow"></div>
+                            <span class="podium-rank">1</span>
+                        </div>
+                    </a>
+
+                    <a href="@Url.Action("Details", "Teams", new { id = Model.TopTeams[2].Id })" class="podium-item podium-third text-decoration-none" style="transition: all 0.2s ease;">
+                        @{
+                            var thirdLogoPath = TeamLogoResolver.GetLogoPath(Model.TopTeams[2].Name, Model.TopTeams[2].Tag);
+                        }
+                        <div class="team-info position-relative" style="z-index: 2;">
+                            <img src="@(string.IsNullOrWhiteSpace(thirdLogoPath) ? Url.Content("~/images/default-avatar.svg") : Url.Content(thirdLogoPath))" alt="@Model.TopTeams[2].Name" class="podium-logo mb-1" />
+                            <div class="fw-bold text-light small text-center w-100">@Model.TopTeams[2].Name</div>
+                        </div>
+                        <div class="podium-block bronze-block position-relative">
+                            <span class="podium-rank">3</span>
+                        </div>
+                    </a>
+                }
+            </div>
+            <div class="mt-5 text-center">
+                <a asp-controller="Teams" asp-action="Index" class="btn btn-sm w-100 rounded-pill mt-4 btn-cyan-glow" style="color: #22d3ee; border: 1px solid #22d3ee; transition: all 0.2s ease;">View Rankings</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .neon-border-blue { border-top: 3px solid #0ea5e9 !important; }
+    .neon-border-orange { border-top: 3px solid #f97316 !important; }
+    .neon-border-cyan { border-top: 3px solid #22d3ee !important; }
+
+    .event-card-link:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(56, 189, 248, 0.2);
+    }
+    .podium-item:hover {
+        transform: translateY(-5px);
+        filter: brightness(1.2);
+    }
+
+    /* Fire Animation for Players */
+    .player-fire-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4);
+    }
+    
+    .btn-cyan-glow:hover {
+        background-color: rgba(34, 211, 238, 0.1);
+        box-shadow: 0 4px 15px rgba(34, 211, 238, 0.4);
+        transform: translateY(-2px);
+    }
+    
+    .fire-glow {
+        position: absolute;
+        bottom: -20px; left: 0; right: 0;
+        height: 60px;
+        background: radial-gradient(ellipse at bottom, rgba(249, 115, 22, 0.4) 0%, transparent 70%);
+        opacity: 0.5;
+        animation: pulseFire 2s infinite alternate;
+    }
+    @@keyframes pulseFire {
+        0% { opacity: 0.3; transform: scaleY(0.8); }
+        100% { opacity: 0.7; transform: scaleY(1.2); }
+    }
+
+    /* Podium Styles */
+    .podium-container {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 15px;
+        height: 220px;
+    }
+    .podium-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+        min-width: 0; 
+    }
+    .team-info {
+        text-align: center;
+        margin-bottom: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .podium-logo {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+        filter: drop-shadow(0 0 5px rgba(255,255,255,0.2));
+    }
+    .podium-block {
+        width: 100%;
+        border-radius: 8px 8px 0 0;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding-top: 10px;
+        position: relative;
+        overflow: hidden;
+    }
+    .podium-rank {
+        font-size: 1.8rem;
+        font-weight: 900;
+        color: rgba(0,0,0,0.3);
+    }
+    .gold-block {
+        height: 120px;
+        background: linear-gradient(135deg, #fcd34d, #b45309);
+        box-shadow: 0 -5px 25px rgba(252, 211, 77, 0.5);
+    }
+    .gold-glow {
+        position: absolute;
+        top: -10px; left: 0; right: 0;
+        height: 40px;
+        background: radial-gradient(ellipse at top, rgba(255, 255, 255, 0.4) 0%, transparent 60%);
+        pointer-events: none;
+    }
+    .silver-block {
+        height: 90px;
+        background: linear-gradient(135deg, #e2e8f0, #64748b);
+    }
+    .bronze-block {
+        height: 70px;
+        background: linear-gradient(135deg, #fdbba7, #9a3412);
+    }
+    .glow-text {
+        text-shadow: 0 0 10px #fcd34d, 0 0 20px #b45309;
+    }
+    .podium-block::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 100%);
+        pointer-events: none;
+    }
+</style>

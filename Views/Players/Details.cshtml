@@ -1,0 +1,57 @@
+@model cs2_esports.Models.Player
+@{
+    ViewData["Title"] = "Player Details";
+    var teamLogoPath = Model.Team is null ? null : TeamLogoResolver.GetLogoPath(Model.Team.Name, Model.Team.Tag);
+}
+
+<div class="esports-card mb-4">
+    <div class="row align-items-center">
+        <!-- Player Identity -->
+        <div class="col-md-5 text-center text-md-start border-md-end mb-4 mb-md-0" style="border-color: #2d3340 !important">
+            <h1 class="display-5 text-light fw-bold mb-1">@Model.Nickname</h1>
+            <p class="text-muted fs-5 mb-3">@Model.FullName</p>
+            
+            <div class="d-flex justify-content-center justify-content-md-start align-items-center gap-3">
+                <span class="badge border border-primary text-light px-3 py-2">@Model.Role</span>
+                <img src="@CountryFlagHelper.GetFlagImageUrl(Model.CountryCode)" alt="@Model.CountryCode flag" class="country-flag-img country-flag--inline" loading="lazy" decoding="async" />
+            </div>
+        </div>
+
+        <!-- Core Stats -->
+        <div class="col-md-7">
+            <div class="row text-center z-1">
+                <div class="col-4">
+                    <p class="text-muted text-uppercase small fw-bold mb-2">Current Team</p>
+                    <p class="text-light fs-5">
+                        @if (Model.Team is null)
+                        {
+                            <span class="text-muted">-</span>
+                        }
+                        else
+                        {
+                            <a asp-controller="Teams" asp-action="Details" asp-route-id="@Model.Team.Id" class="team-mention-link justify-content-center">
+                                @if (!string.IsNullOrWhiteSpace(teamLogoPath))
+                                {
+                                    <img src="@Url.Content(teamLogoPath)" class="team-logo" alt="@Model.Team.Name logo" />
+                                }
+                                else
+                                {
+                                    <span class="team-logo-fallback">@TeamLogoResolver.GetBadgeText(Model.Team.Name, Model.Team.Tag)</span>
+                                }
+                                <strong>@Model.Team.Name</strong>
+                            </a>
+                        }
+                    </p>
+                </div>
+                <div class="col-4 border-start border-end" style="border-color: #2d3340 !important">
+                    <p class="text-muted text-uppercase small fw-bold mb-2">Rating 2.0</p>
+                    <p class="@(Model.Rating2 < 1.00m ? "text-danger" : "text-success") fw-bold fs-4 mb-0">@Model.Rating2</p>
+                </div>
+                <div class="col-4">
+                    <p class="text-muted text-uppercase small fw-bold mb-2">Maps Played</p>
+                    <p class="text-light fs-5 mb-0">@Model.TotalMapsPlayed</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

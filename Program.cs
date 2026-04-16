@@ -1,12 +1,28 @@
+using cs2_esports.Models;
+using cs2_esports.Repositories.Interfaces;
+using cs2_esports.Repositories.Mock;
+using Microsoft.AspNetCore.Localization;
+using System.Globalization;
+
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.GetCultureInfo("en-US");
+CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.GetCultureInfo("en-US");
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession();
 
-var seededData = cs2_esports.Models.SampleDataSeeder.Create();
-builder.Services.AddSingleton(seededData);
+builder.Services.AddSingleton<InMemoryAppData>(_ => SampleDataSeeder.Create());
+builder.Services.AddSingleton<ITeamRepository, TeamMockRepository>();
+builder.Services.AddSingleton<IEventRepository, EventMockRepository>();
+builder.Services.AddSingleton<IPlayerRepository, PlayerMockRepository>();
+builder.Services.AddSingleton<IForumRepository, ForumMockRepository>();
 
 var app = builder.Build();
+
+var seededData = app.Services.GetRequiredService<InMemoryAppData>();
 
 app.Logger.LogInformation(
     "Seeded {TournamentCount} tournaments, {TeamCount} teams and {PlayerCount} players.",
@@ -14,7 +30,7 @@ app.Logger.LogInformation(
     seededData.Teams.Count,
     seededData.Players.Count);
 
-var linqReport = cs2_esports.Models.SampleLinqQueries.BuildReport(seededData);
+var linqReport = SampleLinqQueries.BuildReport(seededData);
 foreach (var line in linqReport)
 {
     app.Logger.LogInformation(line);
@@ -29,6 +45,13 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture("en-US"),
+    SupportedCultures = new[] { CultureInfo.GetCultureInfo("en-US") },
+    SupportedUICultures = new[] { CultureInfo.GetCultureInfo("en-US") }
+});
+app.UseSession();
 
 app.UseAuthorization();
 

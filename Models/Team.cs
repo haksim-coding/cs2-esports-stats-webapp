@@ -1,4 +1,4 @@
-namespace cs2_esports.Models;
+﻿namespace cs2_esports.Models;
 
 public class Team
 {
@@ -12,5 +12,6 @@ public class Team
     public DateTime LastRosterUpdateUtc { get; set; } = DateTime.UtcNow;
 
     public List<Player> Players { get; set; } = new();
-    public List<Tournament> Tournaments { get; set; } = new();
+    public List<Event> Tournaments { get; set; } = new();
 }
+
