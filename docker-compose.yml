@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: cs2scope-db
+
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "Najjaca1gr1c@!1"
+
+    ports:
+      - "1433:1433"
+
+    volumes:
+      - sql_data:/var/opt/mssql
+
+volumes:
+  sql_data:

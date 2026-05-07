@@ -14,4 +14,8 @@ public interface IForumRepository
     ForumUser? RegisterForumUser(ForumRegisterInputModel input);
     Forum? Create(ForumCreateInputModel input);
     ForumComment? AddComment(ForumCommentInputModel input);
+    IReadOnlyList<Team> GetFavoriteTeams(int forumUserId);
+    IReadOnlyList<Player> GetFavoritePlayers(int forumUserId);
+    bool ToggleFavoriteTeam(int forumUserId, int teamId);
+    bool ToggleFavoritePlayer(int forumUserId, int playerId);
 }

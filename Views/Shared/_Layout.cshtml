@@ -51,6 +51,7 @@
                         }
                         else
                         {
+                            <a class="btn btn-outline-info rounded px-3" asp-controller="Auth" asp-action="Profile">Profile</a>
                             <a class="navbar-welcome-pill" asp-controller="Auth" asp-action="Logout" onclick="return confirm('Logout?');">
                                 <span class="welcome-text">Welcome, <span class="navbar-user-name">@loggedInForumUser.Username</span></span>
                                 <span class="logout-text">Logout?</span>

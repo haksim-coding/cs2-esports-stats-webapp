@@ -53,7 +53,7 @@
                         _ => "bg-info text-dark"
                     };
 
-                    <a href="@Url.Action("Details", "Events", new { id = ev.Id })" class="text-decoration-none d-block p-3 rounded-3 event-card-link" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.1); transition: all 0.2s ease;">
+                    <a href="@Url.Action("DetailsBySlug", "Events", new { slug = RouteSlugHelper.ToRouteSegment(ev.Name) })" class="text-decoration-none d-block p-3 rounded-3 event-card-link" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.1); transition: all 0.2s ease;">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <h5 class="mb-0 text-light fw-bold text-truncate me-2" style="font-size: 1.1rem; max-width: 180px;">@ev.Name</h5>
                             <span class="badge @tierBadgeClass fw-bold text-nowrap">@ev.Tier Tier</span>
@@ -82,7 +82,7 @@
             <div class="d-flex flex-column gap-3">
                 @foreach (var player in Model.TopPlayers)
                 {
-                    <a href="@Url.Action("Details", "Players", new { id = player.Id })" class="text-decoration-none d-block p-3 rounded-3 position-relative overflow-hidden player-fire-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(249, 115, 22, 0.2); transition: all 0.2s ease;">
+                    <a href="@Url.Action("DetailsBySlug", "Players", new { slug = RouteSlugHelper.ToRouteSegment(player.Nickname) })" class="text-decoration-none d-block p-3 rounded-3 position-relative overflow-hidden player-fire-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(249, 115, 22, 0.2); transition: all 0.2s ease;">
                         <div class="fire-glow"></div>
                         <div class="d-flex justify-content-between align-items-center position-relative" style="z-index: 2;">
                             <div class="d-flex align-items-center gap-2">
@@ -118,7 +118,7 @@
             <div class="podium-container mt-5">
                 @if (Model.TopTeams.Count >= 3)
                 {
-                    <a href="@Url.Action("Details", "Teams", new { id = Model.TopTeams[1].Id })" class="podium-item podium-second text-decoration-none" style="transition: all 0.2s ease;">
+                    <a href="@Url.Action("DetailsBySlug", "Teams", new { slug = RouteSlugHelper.ToRouteSegment(Model.TopTeams[1].Name) })" class="podium-item podium-second text-decoration-none" style="transition: all 0.2s ease;">
                         @{
                             var secondLogoPath = TeamLogoResolver.GetLogoPath(Model.TopTeams[1].Name, Model.TopTeams[1].Tag);
                         }
@@ -131,7 +131,7 @@
                         </div>
                     </a>
 
-                    <a href="@Url.Action("Details", "Teams", new { id = Model.TopTeams[0].Id })" class="podium-item podium-first text-decoration-none" style="transition: all 0.2s ease;">
+                    <a href="@Url.Action("DetailsBySlug", "Teams", new { slug = RouteSlugHelper.ToRouteSegment(Model.TopTeams[0].Name) })" class="podium-item podium-first text-decoration-none" style="transition: all 0.2s ease;">
                         @{
                             var firstLogoPath = TeamLogoResolver.GetLogoPath(Model.TopTeams[0].Name, Model.TopTeams[0].Tag);
                         }
@@ -145,7 +145,7 @@
                         </div>
                     </a>
 
-                    <a href="@Url.Action("Details", "Teams", new { id = Model.TopTeams[2].Id })" class="podium-item podium-third text-decoration-none" style="transition: all 0.2s ease;">
+                    <a href="@Url.Action("DetailsBySlug", "Teams", new { slug = RouteSlugHelper.ToRouteSegment(Model.TopTeams[2].Name) })" class="podium-item podium-third text-decoration-none" style="transition: all 0.2s ease;">
                         @{
                             var thirdLogoPath = TeamLogoResolver.GetLogoPath(Model.TopTeams[2].Name, Model.TopTeams[2].Tag);
                         }

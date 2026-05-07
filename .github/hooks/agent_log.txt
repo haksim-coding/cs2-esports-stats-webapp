@@ -173,3 +173,97 @@ A tier should be green not red on the home page, and dont color the first place 
 Now the UI agent should make the View rankings button do some effect when hovered over like the rest and on the active players site make the background of the role div also black just like the team one
 ----------------
 
+[2026-04-16 17:55:26.437] [CopilotPrompt] [RequestId: request_54f5c509-354b-49a6-90bb-1f3789186b55]
+can you explain what you did to get the mock repositories working, how does the data go from the seeder to there and explain how the views fork in .net MVC technology, how does it know where to render what data and how do the controllers work. Also why did you create so many new models for forums
+----------------
+
+
+
+LAB3
+
+
+[2026-05-06 18:46:47.468] [CopilotPrompt] [RequestId: request_f4d4d0a5-40e9-4b7b-86c8-cd8d117da549]
+Here is our next task, I created the docker-compose file and the database is up and running, now walk me through how to integrate it in my project and check the lab requirements and give me a simple roadmap of what we need to do to complete it
+----------------
+
+[2026-05-06 19:20:50.382] [CopilotPrompt] [RequestId: request_935a3af3-68a4-4c6d-b9d7-587f72a824de]
+Can we first create 2 skills, one for EF work migrations and such and the other for routing so I can use them in the rest of the lab, explain how they work how they are made and how should i use them to be more efficient
+----------------
+
+[2026-05-06 19:31:40.161] [CopilotPrompt] [RequestId: request_04354e45-75e4-466c-b663-860e164aae63]
+can you edit the skill.md files a little bit to make them good EF and routeing skills generally not just for this lab, dont look at the requirements I will tell them what to do just clean it up a little bit so its not a 1 to 1 copy of the lab requirements
+----------------
+
+[2026-05-06 19:40:13.825] [CopilotPrompt] [RequestId: request_78adb021-3bee-4b1b-9493-eda609cc1630]
+Great, now lets start with the first point in the lab, making everyting EF ready, add all the necessary annotions to the models and make sure the connections all make sense, create the DbContext and the correct connection string with the database name cs2scope-db
+----------------
+
+[2026-05-07 14:32:48.198] [CopilotPrompt] [RequestId: request_68abd539-952f-44dd-8aaf-a40ac614da22]
+great, now lets create the migration and fill the database with actual tables, walk me through the process and are you using the EF skill to complete this task, if not can you and tell me how to consistently make you use it with the appropiate keywords
+----------------
+
+[2026-05-07 14:42:37.650] [CopilotPrompt] [RequestId: request_ee7fc8b5-3642-4ff5-95ad-5ac3870fb35f]
+great, now can you put all the mock data i have for now into the database and swap the repository to the EF one and show me how did you do that, afterwards create the semantic DB model called semantic-model.md for the lab using the EF workflow skill
+----------------
+
+[2026-05-07 15:27:25.875] [CopilotPrompt] [RequestId: request_0a6ba58e-3b22-4382-bcd2-1950fa83ba2d]
+before we create the sitemap and the routing give me some suggestions where should i implement the 4 necessary routing changes, where would it make sense and how does routing work in general and whats the use of it
+----------------
+
+[2026-05-07 15:52:40.360] [CopilotPrompt] [RequestId: request_3700d817-fcf6-440d-86ce-9cb138c4fb0b]
+before we continue to routing i need you to create a dedicated user page that is only visible in the navbar available when the user is logged in, the page is similiar to the player details page but instead showing the users username, his bio (generate a random bio for every user i have now) and show his favorite teams and players. Because of that if the user is logged in every player and team page should now have a add to favorites button, something like +favorite or something clean and thats it. Deleagate Every UI/UX task to the ui specialist and make the neccesary changes to the SQL database after the changes using the EF workflow skill , including the markdown file
+----------------
+
+[2026-05-07 16:27:37.944] [CopilotPrompt] [RequestId: request_2de246c9-3cfa-4102-80b4-48bf14f58949]
+Almost perfect, tell the UI/UX specialist to remove the gray hearts from the list page and make the save to favorites button only visible on the details page, also the user page should say User profile, not Player profile. If the player/team is in favorites show the red glowing heart just like now but remove the gray-ed out hearts that are clickable, also position the Save team or Save player button a little better (the UI/UX specialist should use gemini for the job). Also why did u have errors with the mock repository i thought it is not needed anymore, also remove the data seeder and things that were used before the database migration, all data should now be exclusively called from the local database
+----------------
+
+[2026-05-07 16:35:18.621] [CopilotPrompt] [RequestId: request_0027abfd-3809-4450-822b-5c8ca1a66cb9]
+can the UI/UX specialist just allign the save button with the team name so its not below a little like in the pasted image please, also tell me why cant i login with my admin account, i checked the password and username multiple times and it just doesnt work it says invalid credentials, also tell the UI/UX specialist to make the red box around the error mesage in the second pasted image wrap around the text a little bit better it has too much free space, or make it centered even
+----------------
+
+[2026-05-07 16:47:05.877] [CopilotPrompt] [RequestId: request_cf75f932-38f2-4412-876f-33a62ae7b998]
+tell the UI/UX specialist to revert all the changes the team details page is totally wrong now, and why does the admin password need a seperate field? Just let me log in to my admin_maksim account using the password i set in the password column like every other user, delete the admin password column in the SQL database and fix the team details page. Now trying to log in it shows a huge error screen
+----------------
+
+
+[2026-05-07 17:03:25.417] [CopilotPrompt] [RequestId: request_1906474b-71c4-41a2-af11-d0ab935b7592]
+The team details page is wrong, the team ranking should be on the right of the div and the save button should be right next and in line with the team name, the tournament history table should not go across the whole screen, make the ui/ux specialist fix these errors
+----------------
+
+[2026-05-07 17:12:22.764] [CopilotPrompt] [RequestId: request_597bdc55-b162-4e30-bbec-188fccf8e9d5]
+great, it looks amazing now, now for the routing, for the lab i need 4 custom routes for my page, my idea is to create a custom route for the player profile page, for example /my-profile, also the /register and /login for the auth pages respectively (to remove the /Auth part of the URL), also for the teams, players, and events all URL-s should avoid the /details part, so if possible make the url have the team/player name for example player/NiKo and thats it. For the routing job make sure to use the Routing workflow skill.
+
+The lab requirement is
+
+Izrada semantičkog modela usmjeravanja: sitemap.md
+Za svaki dostupni URL u aplikaciji, treba pisati koji je controller, koja akcija i koji view-ovi se koriste
+
+after the routing changes create the sitemap.md and explain the routes you defined and where did you place them
+----------------
+
+[2026-05-07 17:27:32.782] [CopilotPrompt] [RequestId: request_86d5791e-2398-4a30-90cd-e2598c74ecd0]
+Microsoft.AspNetCore.Routing.Matching.AmbiguousMatchException: The request matched multiple endpoints. Matches: 
+
+cs2_esports.Controllers.TeamsController.Details (cs2-esports)
+cs2_esports.Controllers.TeamsController.Details (cs2-esports)
+   at Microsoft.AspNetCore.Routing.Matching.DefaultEndpointSelector.ReportAmbiguity(Span`1 candidateState)
+   at Microsoft.AspNetCore.Routing.Matching.DefaultEndpointSelector.ProcessFinalCandidates(HttpContext httpContext, Span`1 candidateState)
+   at Microsoft.AspNetCore.Routing.Matching.DefaultEndpointSelector.Select(HttpContext httpContext, Span`1 candidateState)
+   at Microsoft.AspNetCore.Routing.Matching.DfaMatcher.MatchAsync(HttpContext httpContext)
+   at Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware.Invoke(HttpContext httpContext)
+   at Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddlewareImpl.Invoke(HttpContext context)
+
+   players, events and teams get the same error message, you messed up somewhere
+----------------
+
+[2026-05-07 17:31:34.087] [CopilotPrompt] [RequestId: request_9034de72-9705-4b40-ae21-342d3e9db24a]
+still here
+----------------
+
+[2026-05-07 17:36:57.430] [CopilotPrompt] [RequestId: request_94ff5bf6-fdd1-499b-9ec7-7d8189cb5a08]
+almost there, the only route i found that doesnt work is on the forums detail page (we should add a slug route for that too, but no need for the forum name just make it like forums/{id}) page when the related event is clicked it throws in an error No web page was found for the web address: http://localhost:5003/Events/Details?slug=IEM-Katowice-2026, so fix that and add that final route and update the sitemap.md 
+----------------
+

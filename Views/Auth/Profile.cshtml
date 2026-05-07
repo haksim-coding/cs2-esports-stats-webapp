@@ -1,0 +1,75 @@
+@model cs2_esports.Models.ForumUserProfileViewModel
+@{
+    ViewData["Title"] = "User profile";
+}
+
+<div class="cs2-glass-card shadow-lg border border-secondary overflow-hidden">
+    <div class="p-4 p-md-5 border-bottom border-secondary position-relative overflow-hidden">
+        <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-4">
+            <div class="profile-avatar-shell">
+                <span class="profile-avatar-letter">@Model.User.Username.Substring(0, 1).ToUpperInvariant()</span>
+            </div>
+            <div class="flex-grow-1">
+                <div class="text-uppercase text-info small fw-semibold tracking-widest mb-2">User profile</div>
+                <h1 class="display-6 text-white fw-bold mb-2">@Model.User.DisplayName</h1>
+                <div class="text-secondary mb-3">@Model.User.Username</div>
+                <p class="text-light fs-6 mb-0 profile-bio">@(string.IsNullOrWhiteSpace(Model.User.Bio) ? "No bio added yet." : Model.User.Bio)</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-4 p-md-5">
+        <div class="row g-4">
+            <div class="col-12 col-lg-6">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h2 class="h5 text-white mb-0">Favorite Teams</h2>
+                    <span class="text-secondary small">@Model.FavoriteTeams.Count saved</span>
+                </div>
+                <div class="profile-favorites-list">
+                    @if (Model.FavoriteTeams.Any())
+                    {
+                        @foreach (var team in Model.FavoriteTeams.OrderBy(team => team.WorldRanking))
+                        {
+                            <a asp-controller="Teams" asp-action="DetailsBySlug" asp-route-slug="@RouteSlugHelper.ToRouteSegment(team.Name)" class="profile-favorite-item">
+                                <div>
+                                    <div class="fw-semibold text-white">#@team.WorldRanking @team.Name</div>
+                                    <div class="small text-secondary">@team.Tag • @team.FoundedYear</div>
+                                </div>
+                                <span class="favorite-heart favorite-heart--active">♥</span>
+                            </a>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-secondary fst-italic">No favorite teams yet.</div>
+                    }
+                </div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h2 class="h5 text-white mb-0">Favorite Players</h2>
+                    <span class="text-secondary small">@Model.FavoritePlayers.Count saved</span>
+                </div>
+                <div class="profile-favorites-list">
+                    @if (Model.FavoritePlayers.Any())
+                    {
+                        @foreach (var player in Model.FavoritePlayers)
+                        {
+                            <a asp-controller="Players" asp-action="DetailsBySlug" asp-route-slug="@RouteSlugHelper.ToRouteSegment(player.Nickname)" class="profile-favorite-item">
+                                <div>
+                                    <div class="fw-semibold text-white">@player.Nickname</div>
+                                    <div class="small text-secondary">@player.FullName@if (player.Team is not null) { <span> • @player.Team.Name</span> }</div>
+                                </div>
+                                <span class="favorite-heart favorite-heart--active">♥</span>
+                            </a>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-secondary fst-italic">No favorite players yet.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

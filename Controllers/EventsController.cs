@@ -1,3 +1,4 @@
+using cs2_esports.Helpers;
 using cs2_esports.Repositories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,5 +28,25 @@ public class EventsController : Controller
         }
 
         return View(eventItem);
+    }
+
+    [HttpGet("/event/{slug}")]
+    public IActionResult DetailsBySlug(string slug)
+    {
+        var eventSummary = _eventRepository.GetAll().FirstOrDefault(tournament =>
+            RouteSlugHelper.MatchesRouteSegment(tournament.Name, slug));
+
+        if (eventSummary is null)
+        {
+            return NotFound();
+        }
+
+        var eventItem = _eventRepository.GetById(eventSummary.Id);
+        if (eventItem is null)
+        {
+            return NotFound();
+        }
+
+        return View("Details", eventItem);
     }
 }

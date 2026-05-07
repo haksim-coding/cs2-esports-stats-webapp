@@ -1,8 +1,9 @@
-using cs2_esports.Models;
+using cs2_esports.Data;
 using cs2_esports.Repositories.Interfaces;
-using cs2_esports.Repositories.Mock;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.EntityFrameworkCore;
 using System.Globalization;
+using cs2_esports.Repositories.Ef;
 
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.GetCultureInfo("en-US");
 CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.GetCultureInfo("en-US");
@@ -13,27 +14,25 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession();
+builder.Services.AddDbContext<Cs2ScopeDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Cs2ScopeDbContext")));
 
-builder.Services.AddSingleton<InMemoryAppData>(_ => SampleDataSeeder.Create());
-builder.Services.AddSingleton<ITeamRepository, TeamMockRepository>();
-builder.Services.AddSingleton<IEventRepository, EventMockRepository>();
-builder.Services.AddSingleton<IPlayerRepository, PlayerMockRepository>();
-builder.Services.AddSingleton<IForumRepository, ForumMockRepository>();
+builder.Services.AddScoped<ITeamRepository, EfTeamRepository>();
+builder.Services.AddScoped<IEventRepository, EfEventRepository>();
+builder.Services.AddScoped<IPlayerRepository, EfPlayerRepository>();
+builder.Services.AddScoped<IForumRepository, EfForumRepository>();
 
 var app = builder.Build();
 
-var seededData = app.Services.GetRequiredService<InMemoryAppData>();
-
-app.Logger.LogInformation(
-    "Seeded {TournamentCount} tournaments, {TeamCount} teams and {PlayerCount} players.",
-    seededData.Tournaments.Count,
-    seededData.Teams.Count,
-    seededData.Players.Count);
-
-var linqReport = SampleLinqQueries.BuildReport(seededData);
-foreach (var line in linqReport)
+using (var scope = app.Services.CreateScope())
 {
-    app.Logger.LogInformation(line);
+    var dbContext = scope.ServiceProvider.GetRequiredService<Cs2ScopeDbContext>();
+    app.Logger.LogInformation(
+        "Database seeded with {TeamCount} teams, {EventCount} events, {ForumCount} forums and {PlayerCount} players.",
+        await dbContext.Teams.CountAsync(),
+        await dbContext.Tournaments.CountAsync(),
+        await dbContext.Forums.CountAsync(),
+        await dbContext.Players.CountAsync());
 }
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -56,6 +55,26 @@ app.UseSession();
 app.UseAuthorization();
 
 app.MapStaticAssets();
+
+app.MapControllerRoute(
+    name: "login",
+    pattern: "login",
+    defaults: new { controller = "Auth", action = "Login" });
+
+app.MapControllerRoute(
+    name: "register",
+    pattern: "register",
+    defaults: new { controller = "Auth", action = "Register" });
+
+app.MapControllerRoute(
+    name: "logout",
+    pattern: "logout",
+    defaults: new { controller = "Auth", action = "Logout" });
+
+app.MapControllerRoute(
+    name: "profile",
+    pattern: "my-profile",
+    defaults: new { controller = "Auth", action = "Profile" });
 
 app.MapControllerRoute(
     name: "default",

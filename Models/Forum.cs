@@ -1,7 +1,12 @@
-﻿namespace cs2_esports.Models;
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace cs2_esports.Models;
 
 public class Forum
 {
+    [Key]
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
@@ -12,12 +17,14 @@ public class Forum
     public bool IsPinned { get; set; }
     public bool IsLocked { get; set; }
 
+    [ForeignKey(nameof(Author))]
     public int AuthorId { get; set; }
-    public ForumUser? Author { get; set; }
+    public virtual ForumUser? Author { get; set; }
 
+    [ForeignKey(nameof(Event))]
     public int? TournamentId { get; set; }
-    public Event? Event { get; set; }
+    public virtual Event? Event { get; set; }
 
-    public List<ForumComment> Comments { get; set; } = new();
+    public virtual ICollection<ForumComment> Comments { get; set; } = new List<ForumComment>();
 }
 

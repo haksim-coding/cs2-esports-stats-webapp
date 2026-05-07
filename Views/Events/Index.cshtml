@@ -24,7 +24,7 @@
             {
                 var isSTier = tournament.Tier == cs2_esports.Models.EventTier.S;
                 var tierClass = tournament.Tier == cs2_esports.Models.EventTier.S ? "event-tier-gold" : tournament.Tier == cs2_esports.Models.EventTier.A ? "event-tier-green" : "event-tier-neutral";
-                <tr class="clickable-row border-top border-secondary @(isSTier ? "event-s-tier-row" : string.Empty)" onclick="window.location='@Url.Action("Details", new { id = tournament.Id })'">
+                <tr class="clickable-row border-top border-secondary @(isSTier ? "event-s-tier-row" : string.Empty)" onclick="window.location='@Url.Action("DetailsBySlug", "Events", new { slug = RouteSlugHelper.ToRouteSegment(tournament.Name) })'">
                     <td class="fw-bold text-light ps-4 py-3">
                         <i class="bi bi-trophy-fill text-accent me-2"></i> @tournament.Name
                     </td>

@@ -47,6 +47,146 @@ body {
     color: #F1F5F9;
 }
 
+.profile-avatar-shell {
+    width: 92px;
+    height: 92px;
+    border-radius: 28px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, rgba(34, 211, 238, 0.18), rgba(124, 58, 237, 0.22));
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05), 0 10px 24px rgba(0,0,0,0.25);
+}
+
+.profile-avatar-letter {
+    color: #F8FAFC;
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.profile-favorites-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.profile-favorite-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.95rem 1rem;
+    border-radius: 16px;
+    text-decoration: none;
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    transition: transform 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+}
+
+.profile-favorite-item:hover {
+    transform: translateY(-1px);
+    border-color: rgba(34, 211, 238, 0.35);
+    background: rgba(15, 23, 42, 0.92);
+}
+
+.favorite-toggle {
+    text-decoration: none;
+    box-shadow: none !important;
+}
+
+.favorite-heart {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    line-height: 1;
+    color: #94a3b8;
+    transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.favorite-heart--active {
+    color: #fb7185;
+    text-shadow: 0 0 12px rgba(251, 113, 133, 0.35);
+}
+
+/* Elegant Save Button for Details Pages */
+.btn-favorite-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    background: rgba(31, 41, 55, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 12px;
+    padding: 0.6rem 0.9rem;
+    width: fit-content;
+    max-width: 100%;
+    text-align: center;
+    color: #94a3b8;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(4px);
+}
+
+.btn-favorite-action:hover {
+    background: rgba(31, 41, 55, 0.85);
+    border-color: rgba(34, 211, 238, 0.4);
+    color: #F1F5F9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-favorite-action.active {
+    background: rgba(124, 58, 237, 0.1);
+    border-color: rgba(124, 58, 237, 0.3);
+    color: #fb7185;
+}
+
+.btn-favorite-action.active:hover {
+    background: rgba(124, 58, 237, 0.15);
+}
+
+.team-save-action,
+.player-save-action {
+    flex: 0 0 auto;
+    align-self: center;
+    margin-left: auto;
+}
+
+.team-header-copy {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.team-header-copy .team-save-action {
+    margin-left: 0;
+}
+
+.team-history-section {
+    width: min(100%, 1180px);
+    margin-top: 1.5rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.team-ranking-card {
+    min-width: 140px;
+}
+
+.team-identity-row {
+    align-items: flex-start;
+}
+
+.favorite-toggle:hover .favorite-heart,
+.profile-favorite-item:hover .favorite-heart {
+    transform: scale(1.08);
+}
+
+.profile-bio {
+    max-width: 60ch;
+}
+
 /* Text readability / contrast */
 .text-light, .text-muted, .text-secondary {
     color: #94a3b8 !important;
@@ -330,13 +470,10 @@ label { color: #94a3b8; font-weight: 500; }
     border: 1px solid rgba(248, 113, 113, 0.35);
     border-radius: 0.75rem;
     padding: 0.75rem 0.9rem;
-}
-
-.auth-footer-border {
-    border-color: rgba(148, 163, 184, 0.18) !important;
+    display: block;
 }
 .table td, .table th {
-    border-color: rgba(255, 255, 255, 0.05) !important;
+    margin: 0 auto;
     padding: 1.2rem 1rem;
     vertical-align: middle;
 }

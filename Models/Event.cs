@@ -1,7 +1,12 @@
-﻿namespace cs2_esports.Models;
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace cs2_esports.Models;
 
 public class Event
 {
+    [Key]
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Organizer { get; set; } = string.Empty;
@@ -11,13 +16,15 @@ public class Event
     public DateTime EndDateUtc { get; set; }
     public bool IsLan { get; set; }
 
+    [ForeignKey(nameof(EventVenue))]
     public int EventVenueId { get; set; }
-    public EventVenue? EventVenue { get; set; }
+    public virtual EventVenue? EventVenue { get; set; }
 
+    [ForeignKey(nameof(AdminUser))]
     public int? AdminUserId { get; set; }
-    public AdminUser? AdminUser { get; set; }
+    public virtual AdminUser? AdminUser { get; set; }
 
-    public List<Team> Teams { get; set; } = new();
-    public List<Forum> ForumThreads { get; set; } = new();
+    public virtual ICollection<Team> Teams { get; set; } = new List<Team>();
+    public virtual ICollection<Forum> ForumThreads { get; set; } = new List<Forum>();
 }
 

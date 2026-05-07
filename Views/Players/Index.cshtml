@@ -21,10 +21,16 @@
             <tbody>
             @foreach (var player in Model)
             {
-                <tr class="clickable-row border-top border-secondary" onclick="window.location='@Url.Action("Details", new { id = player.Id })'">
+                <tr class="clickable-row border-top border-secondary" onclick="window.location='@Url.Action("DetailsBySlug", "Players", new { slug = RouteSlugHelper.ToRouteSegment(player.Nickname) })'">
                     <td class="ps-4 py-3">
                         <div class="d-flex flex-column">
-                            <strong class="text-light fs-5 fw-bold text-decoration-none">@player.Nickname</strong>
+                            <div class="d-flex align-items-center gap-2">
+                                <strong class="text-light fs-5 fw-bold text-decoration-none">@player.Nickname</strong>
+                                @if (player.IsFavorite)
+                                {
+                                    <span class="favorite-heart favorite-heart--active" title="In favorites">♥</span>
+                                }
+                            </div>
                             <span class="text-muted small">@player.FullName</span>
                         </div>
                     </td>
@@ -35,7 +41,7 @@
                         @if (player.Team != null)
                         {
                             var teamLogoPath = TeamLogoResolver.GetLogoPath(player.Team.Name, player.Team.Tag);
-                            <a asp-controller="Teams" asp-action="Details" asp-route-id="@player.Team.Id" class="team-mention-link" onclick="event.stopPropagation();">
+                            <a asp-controller="Teams" asp-action="DetailsBySlug" asp-route-slug="@RouteSlugHelper.ToRouteSegment(player.Team.Name)" class="team-mention-link" onclick="event.stopPropagation();">
                                 @if (!string.IsNullOrWhiteSpace(teamLogoPath))
                                 {
                                     <img src="@Url.Content(teamLogoPath)" class="team-logo" alt="@player.Team.Name logo" />

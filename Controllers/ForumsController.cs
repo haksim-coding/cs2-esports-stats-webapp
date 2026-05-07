@@ -20,6 +20,7 @@ public class ForumsController : Controller
         return View(forums);
     }
 
+    [HttpGet("/forums/{id:int}")]
     public IActionResult Details(int id)
     {
         var detailsViewModel = BuildDetailsViewModel(id);

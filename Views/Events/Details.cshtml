@@ -37,7 +37,7 @@
                 @foreach (var team in Model.Teams.OrderBy(t => t.WorldRanking))
                 {
                     var teamLogoPath = TeamLogoResolver.GetLogoPath(team.Name, team.Tag);
-                    <a class="list-group-item list-group-item-action bg-transparent text-light border-secondary team-mention-link" style="border-color: #2d3340 !important" asp-controller="Teams" asp-action="Details" asp-route-id="@team.Id">
+                    <a class="list-group-item list-group-item-action bg-transparent text-light border-secondary team-mention-link" style="border-color: #2d3340 !important" asp-controller="Teams" asp-action="DetailsBySlug" asp-route-slug="@RouteSlugHelper.ToRouteSegment(team.Name)">
                         <span class="text-muted me-2">#@team.WorldRanking</span>
                         @if (!string.IsNullOrWhiteSpace(teamLogoPath))
                         {

@@ -30,7 +30,8 @@
                 <tr class="clickable-row" data-bs-toggle="collapse" data-bs-target="#team-@team.Id" aria-expanded="false" aria-controls="team-@team.Id" role="button">
                     <td class="ps-4 fw-bold"><span class="@rankClass">#@team.WorldRanking</span></td>
                     <td>
-                        <a href="@Url.Action("Details", "Teams", new { id = team.Id })" class="team-link fw-semibold" onclick="event.stopPropagation();">
+                        <div class="d-flex align-items-center gap-2">
+                            <a href="@Url.Action("DetailsBySlug", "Teams", new { slug = RouteSlugHelper.ToRouteSegment(team.Name) })" class="team-link fw-semibold" onclick="event.stopPropagation();">
                             @if (!string.IsNullOrWhiteSpace(teamLogoPath))
                             {
                                 <img src="@Url.Content(teamLogoPath)" class="team-logo" alt="@team.Name logo" />
@@ -39,8 +40,13 @@
                             {
                                 <span class="team-logo-fallback">@TeamLogoResolver.GetBadgeText(team.Name, team.Tag)</span>
                             }
-                            <span>@team.Name</span>
-                        </a>
+                                <span>@team.Name</span>
+                            </a>
+                            @if (team.IsFavorite)
+                            {
+                                <span class="favorite-heart favorite-heart--active ms-1" title="In favorites">♥</span>
+                            }
+                        </div>
                     </td>
                     <td class="text-secondary">@team.Tag</td>
                     <td>
@@ -61,7 +67,7 @@
                                 {
                                     @foreach (var player in team.Players)
                                     {
-                                        <a href="@Url.Action("Details", "Players", new { id = player.Id })" class="team-roster-card" title="Open @player.Nickname profile">
+                                        <a href="@Url.Action("DetailsBySlug", "Players", new { slug = RouteSlugHelper.ToRouteSegment(player.Nickname) })" class="team-roster-card" title="Open @player.Nickname profile">
                                             <div class="team-roster-avatar">
                                                 <img src="~/images/default-avatar.svg" alt="@player.Nickname" />
                                             </div>

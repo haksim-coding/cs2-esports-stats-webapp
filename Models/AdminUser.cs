@@ -1,4 +1,6 @@
-﻿namespace cs2_esports.Models;
+﻿using System.Collections.Generic;
+
+namespace cs2_esports.Models;
 
 public class AdminUser : User
 {
@@ -6,6 +8,6 @@ public class AdminUser : User
     public DateTime? LastModerationActionAtUtc { get; set; }
     public string PermissionGroup { get; set; } = "TournamentAdmin";
 
-    public List<Event> ManagedTournaments { get; set; } = new();
+    public virtual ICollection<Event> ManagedTournaments { get; set; } = new List<Event>();
 }
 

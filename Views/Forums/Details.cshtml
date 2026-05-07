@@ -27,7 +27,7 @@
     {
         <div class="mt-4 pt-3" style="border-top: 1px dashed rgba(255,255,255,0.1);">
             <span class="text-secondary small me-2">Related Event:</span>
-            <a asp-controller="Events" asp-action="Details" asp-route-id="@Model.Forum.Event.Id" class="badge bg-dark border border-secondary text-light text-decoration-none p-2 cs2-btn-glow">
+            <a asp-controller="Events" asp-action="DetailsBySlug" asp-route-slug="@RouteSlugHelper.ToRouteSegment(Model.Forum.Event.Name)" class="badge bg-dark border border-secondary text-light text-decoration-none p-2 cs2-btn-glow">
                 @Model.Forum.Event.Name
             </a>
         </div>
