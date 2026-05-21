@@ -1,12 +1,12 @@
 using cs2_esports.Models;
 using cs2_esports.Repositories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using cs2_esports.Helpers;
 
 namespace cs2_esports.Controllers;
 
 public class ForumsController : Controller
 {
-    private const string ForumUserSessionKey = "ForumUserId";
     private readonly IForumRepository _forumRepository;
 
     public ForumsController(IForumRepository forumRepository)
@@ -35,6 +35,11 @@ public class ForumsController : Controller
     [HttpGet]
     public IActionResult Create()
     {
+        if (IsAdminLoggedIn())
+        {
+            return Forbid();
+        }
+
         if (GetCurrentForumUser() is null)
         {
             return View(BuildCreatePageViewModel(new ForumCreateInputModel()));
@@ -48,6 +53,11 @@ public class ForumsController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult Create(ForumCreateInputModel input)
     {
+        if (IsAdminLoggedIn())
+        {
+            return Forbid();
+        }
+
         var currentUser = GetCurrentForumUser();
         if (currentUser is null)
         {
@@ -79,6 +89,11 @@ public class ForumsController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult Comment(ForumCommentInputModel input)
     {
+        if (IsAdminLoggedIn())
+        {
+            return Forbid();
+        }
+
         var currentUser = GetCurrentForumUser();
         if (currentUser is null)
         {
@@ -150,12 +165,24 @@ public class ForumsController : Controller
 
     private ForumUser? GetCurrentForumUser()
     {
-        var userId = HttpContext.Session.GetInt32(ForumUserSessionKey);
+        var userType = HttpContext.Session.GetString(AuthSessionKeys.UserType);
+        if (!string.Equals(userType, AuthSessionKeys.ForumUserType, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var userId = HttpContext.Session.GetInt32(AuthSessionKeys.ForumUserId);
         if (!userId.HasValue)
         {
             return null;
         }
 
         return _forumRepository.GetForumUserById(userId.Value);
+    }
+
+    private bool IsAdminLoggedIn()
+    {
+        return string.Equals(HttpContext.Session.GetString(AuthSessionKeys.UserType), AuthSessionKeys.AdminUserType, StringComparison.Ordinal)
+               && HttpContext.Session.GetInt32(AuthSessionKeys.AdminUserId).HasValue;
     }
 }

@@ -1,7 +1,10 @@
 using cs2_esports.Models;
+using cs2_esports.Data;
+using cs2_esports.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using cs2_esports.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace cs2_esports.Controllers
 {
@@ -11,23 +14,25 @@ namespace cs2_esports.Controllers
         private readonly IPlayerRepository _playerRepository;
         private readonly ITeamRepository _teamRepository;
         private readonly IForumRepository _forumRepository;
+        private readonly Cs2ScopeDbContext _dbContext;
 
         public HomeController(
             IEventRepository eventRepository,
             IPlayerRepository playerRepository,
             ITeamRepository teamRepository,
-            IForumRepository forumRepository)
+            IForumRepository forumRepository,
+            Cs2ScopeDbContext dbContext)
         {
             _eventRepository = eventRepository;
             _playerRepository = playerRepository;
             _teamRepository = teamRepository;
             _forumRepository = forumRepository;
+            _dbContext = dbContext;
         }
 
         public IActionResult Index()
         {
-            var loggedInUserId = HttpContext.Session.GetInt32("ForumUserId");
-            var loggedInUser = loggedInUserId.HasValue ? _forumRepository.GetForumUserById(loggedInUserId.Value) : null;
+            var loggedInUser = GetCurrentUser();
             var nowUtc = DateTime.UtcNow;
 
             var upcomingEvents = _eventRepository.GetAll()
@@ -59,7 +64,8 @@ namespace cs2_esports.Controllers
                     .Take(3)
                     .ToList(),
 
-                LoggedInUser = loggedInUser
+                LoggedInUser = loggedInUser,
+                CanCreateForumPost = loggedInUser is ForumUser
             };
 
             return View(model);
@@ -74,6 +80,24 @@ namespace cs2_esports.Controllers
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+
+        private User? GetCurrentUser()
+        {
+            var userType = HttpContext.Session.GetString(AuthSessionKeys.UserType);
+            if (string.Equals(userType, AuthSessionKeys.ForumUserType, StringComparison.Ordinal))
+            {
+                var userId = HttpContext.Session.GetInt32(AuthSessionKeys.ForumUserId);
+                return userId.HasValue ? _forumRepository.GetForumUserById(userId.Value) : null;
+            }
+
+            if (string.Equals(userType, AuthSessionKeys.AdminUserType, StringComparison.Ordinal))
+            {
+                var userId = HttpContext.Session.GetInt32(AuthSessionKeys.AdminUserId);
+                return userId.HasValue ? _dbContext.AdminUsers.FirstOrDefault(user => user.Id == userId.Value) : null;
+            }
+
+            return null;
         }
     }
 }

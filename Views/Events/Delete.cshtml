@@ -1,0 +1,24 @@
+@model cs2_esports.Models.Event
+@{
+    ViewData["Title"] = "Delete Event";
+}
+
+<div class="cs2-glass-card shadow-lg p-4 p-md-5 border-0">
+    <h1 class="h3 text-primary fw-bold mb-3">Delete Event</h1>
+    <p class="text-muted mb-4">Are you sure you want to delete @Model.Name?</p>
+
+    <dl class="row mb-4">
+        <dt class="col-sm-3 text-light">Organizer</dt>
+        <dd class="col-sm-9 text-muted">@Model.Organizer</dd>
+        <dt class="col-sm-3 text-light">Dates</dt>
+        <dd class="col-sm-9 text-muted">@Model.StartDateUtc.ToLocalTime().ToString("MMM dd, yyyy") - @Model.EndDateUtc.ToLocalTime().ToString("MMM dd, yyyy")</dd>
+        <dt class="col-sm-3 text-light">Teams</dt>
+        <dd class="col-sm-9 text-muted">@(Model.Teams?.Count ?? 0)</dd>
+    </dl>
+
+    <form asp-action="Delete" method="post" class="d-flex gap-2">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-danger px-4 fw-bold">Delete</button>
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary px-4">Cancel</a>
+    </form>
+</div>

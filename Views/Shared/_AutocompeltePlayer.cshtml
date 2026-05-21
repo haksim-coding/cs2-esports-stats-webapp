@@ -1,0 +1,49 @@
+@model cs2_esports.Models.TeamCreateModel
+
+@{
+    var searchUrl = Url.Action("Search", "Players") ?? "/Player/Search";
+    var currentTeamId = Model is cs2_esports.Models.TeamEditModel editModel ? editModel.Id : (int?)null;
+}
+
+<div class="team-player-picker" data-player-picker data-search-url="@searchUrl" data-current-team-id="@currentTeamId" data-max-players="5">
+    <div class="mb-2">
+        <label class="form-label text-light mb-1">Team roster</label>
+        <p class="text-muted small mb-0">Search nicknames, add up to five free agents, and remove cards to change the roster.</p>
+    </div>
+
+    <div class="team-player-picker__shell">
+        <div class="team-player-picker__selected" data-player-selected>
+            @if (Model.SelectedPlayers.Any())
+            {
+                foreach (var player in Model.SelectedPlayers)
+                {
+                    <div class="team-player-roster-card" data-player-card data-player-chip data-player-id="@player.Id" data-player-text="@player.Text">
+                        <button type="button" class="team-player-roster-card__remove" data-player-remove aria-label="Remove @player.Text">×</button>
+                        <div class="team-player-roster-card__avatar">
+                            <img src="~/images/default-avatar.svg" alt="@player.Text" />
+                        </div>
+                        <div class="team-player-roster-card__body">
+                            <div class="team-player-roster-card__name text-truncate">@player.Text</div>
+                        </div>
+                        <input type="hidden" name="SelectedPlayerIds" value="@player.Id" />
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="team-player-picker__empty text-muted" data-player-empty>
+                    Add players to build the roster.
+                </div>
+            }
+        </div>
+
+        <div class="team-player-search-wrap position-relative mt-3">
+            <input type="text" class="form-control cs2-form-control team-player-search" data-player-search-input placeholder="Type a player nickname..." autocomplete="off" />
+            <span class="team-player-search-spinner spinner-border spinner-border-sm text-info d-none" data-player-spinner role="status" aria-hidden="true"></span>
+            <div class="dropdown-menu team-player-search-results d-none" data-player-results></div>
+        </div>
+
+        <span asp-validation-for="SelectedPlayerIds" class="text-danger small d-block mt-2"></span>
+        <div class="team-player-picker__status small text-muted mt-1" data-player-status aria-live="polite">Start typing to find players.</div>
+    </div>
+</div>

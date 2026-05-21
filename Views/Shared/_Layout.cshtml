@@ -1,7 +1,20 @@
 ﻿@inject IForumRepository ForumRepository
+@inject cs2_esports.Data.Cs2ScopeDbContext DbContext
 @{
-    var loggedInForumUserId = Context.Session.GetInt32("ForumUserId");
-    var loggedInForumUser = loggedInForumUserId.HasValue ? ForumRepository.GetForumUserById(loggedInForumUserId.Value) : null;
+    var currentUserType = Context.Session.GetString(AuthSessionKeys.UserType);
+    var loggedInForumUser = string.Equals(currentUserType, AuthSessionKeys.ForumUserType, StringComparison.Ordinal)
+        ? Context.Session.GetInt32(AuthSessionKeys.ForumUserId) is int forumUserId
+            ? ForumRepository.GetForumUserById(forumUserId)
+            : null
+        : null;
+    var loggedInAdminUser = string.Equals(currentUserType, AuthSessionKeys.AdminUserType, StringComparison.Ordinal)
+        ? Context.Session.GetInt32(AuthSessionKeys.AdminUserId) is int adminUserId
+            ? DbContext.AdminUsers.FirstOrDefault(user => user.Id == adminUserId)
+            : null
+        : null;
+    var loggedInForumDisplayName = loggedInForumUser?.DisplayName ?? "Forum user";
+    var loggedInAdminDisplayName = loggedInAdminUser?.DisplayName ?? "Admin";
+    var loggedInAdminUsername = loggedInAdminUser?.Username ?? string.Empty;
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -37,6 +50,9 @@
                             <a class="nav-link text-light nav-hover" asp-area="" asp-controller="Events" asp-action="Index">Events</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link text-light nav-hover" asp-area="" asp-controller="Matches" asp-action="Index">Matches</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link text-light nav-hover" asp-area="" asp-controller="Players" asp-action="Index">Players</a>
                         </li>
                         <li class="nav-item">
@@ -44,16 +60,25 @@
                         </li>
                     </ul>
                     <div class="cs2-navbar-auth ms-auto d-flex align-items-center gap-2 mt-3 mt-sm-0">
-                        @if (loggedInForumUser is null)
+                        @if (loggedInForumUser is null && loggedInAdminUser is null)
                         {
                             <a class="btn btn-outline-info rounded px-3" asp-area="" asp-controller="Auth" asp-action="Login">Login</a>
                             <a class="btn btn-primary rounded px-3" asp-area="" asp-controller="Auth" asp-action="Register">Register</a>
+                        }
+                        else if (loggedInAdminUser is not null)
+                        {
+                            <span class="badge bg-warning text-dark px-3 py-2">Admin</span>
+                            <span class="text-light small fw-semibold">@loggedInAdminUsername</span>
+                            <a class="navbar-welcome-pill" asp-controller="Auth" asp-action="Logout" onclick="return confirm('Logout?');">
+                                <span class="welcome-text">Welcome, <span class="navbar-user-name">@loggedInAdminDisplayName</span></span>
+                                <span class="logout-text">Logout?</span>
+                            </a>
                         }
                         else
                         {
                             <a class="btn btn-outline-info rounded px-3" asp-controller="Auth" asp-action="Profile">Profile</a>
                             <a class="navbar-welcome-pill" asp-controller="Auth" asp-action="Logout" onclick="return confirm('Logout?');">
-                                <span class="welcome-text">Welcome, <span class="navbar-user-name">@loggedInForumUser.Username</span></span>
+                                <span class="welcome-text">Welcome, <span class="navbar-user-name">@loggedInForumDisplayName</span></span>
                                 <span class="logout-text">Logout?</span>
                             </a>
                         }

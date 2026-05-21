@@ -1,0 +1,196 @@
+@model cs2_esports.Models.Match
+@{
+    ViewData["Title"] = "Match Details";
+
+    var isFinished = Model.IsFinished;
+    var teamALogoPath = Model.TeamA is not null ? TeamLogoResolver.GetLogoPath(Model.TeamA.Name, Model.TeamA.Tag) : string.Empty;
+    var teamBLogoPath = Model.TeamB is not null ? TeamLogoResolver.GetLogoPath(Model.TeamB.Name, Model.TeamB.Tag) : string.Empty;
+    var eventSlug = Model.Event is not null ? RouteSlugHelper.ToRouteSegment(Model.Event.Name) : string.Empty;
+    var statusBadgeClass = isFinished ? "bg-success" : "bg-dark border border-secondary text-light";
+    var currentUserType = Context.Session.GetString(AuthSessionKeys.UserType);
+    var isAdminUser = string.Equals(currentUserType, AuthSessionKeys.AdminUserType, StringComparison.Ordinal)
+        && Context.Session.GetInt32(AuthSessionKeys.AdminUserId).HasValue;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <p class="text-uppercase text-info small fw-bold mb-2">CS2Scope match center</p>
+        <h1 class="h2 mb-1 text-primary fw-bold">Match #@Model.Id</h1>
+        <p class="text-muted mb-0">@(Model.Event?.Name ?? "Event not assigned")</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a asp-controller="Matches" asp-action="Index" class="btn btn-outline-info">Back to matches</a>
+        @if (isAdminUser)
+        {
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-info">Edit</a>
+            <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger">Delete</a>
+        }
+    </div>
+</div>
+
+<style>
+    .match-map-score-tile[data-map="Ancient"] { background-image: url('/images/map_pool/ancient.jpg'); }
+    .match-map-score-tile[data-map="Mirage"] { background-image: url('/images/map_pool/mirage.jpg'); }
+    .match-map-score-tile[data-map="Inferno"] { background-image: url('/images/map_pool/inferno.jpeg'); }
+    .match-map-score-tile[data-map="Anubis"] { background-image: url('/images/map_pool/anubis.jpg'); }
+    .match-map-score-tile[data-map="Nuke"] { background-image: url('/images/map_pool/nuke.jpeg'); }
+    .match-map-score-tile[data-map="Dust2"] { background-image: url('/images/map_pool/dust2.jpg'); }
+    .match-map-score-tile[data-map="Cache"] { background-image: url('/images/map_pool/cache.jpg'); }
+</style>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="cs2-glass-card shadow-lg p-4 h-100 border-0">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 border-bottom pb-3 mb-4" style="border-color: rgba(255,255,255,0.08) !important;">
+                <div>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                        <span class="badge @statusBadgeClass px-3 py-2">@(isFinished ? "Finished" : "Upcoming")</span>
+                        <span class="badge bg-dark border border-secondary text-light px-3 py-2">@MatchDisplayHelper.GetFormatLabel(Model.Format)</span>
+                    </div>
+                    <h2 class="match-versus-layout match-versus-layout--hero h3 text-light fw-bold mb-2">
+                        <span class="match-versus-layout__team match-versus-layout__team--left match-team-name">
+                            @if (!string.IsNullOrWhiteSpace(teamALogoPath))
+                            {
+                                <img src="@Url.Content(teamALogoPath)" class="team-logo-inline" alt="@Model.TeamA?.Name logo" />
+                            }
+                            else if (Model.TeamA is not null)
+                            {
+                                <span class="team-logo-fallback">@TeamLogoResolver.GetBadgeText(Model.TeamA.Name, Model.TeamA.Tag)</span>
+                            }
+                            <span class="text-truncate">@(Model.TeamA?.Name ?? "TBD")</span>
+                        </span>
+                        <span class="match-versus-layout__vs text-uppercase">VS</span>
+                        <span class="match-versus-layout__team match-versus-layout__team--right match-team-name">
+                            <span class="text-truncate">@(Model.TeamB?.Name ?? "TBD")</span>
+                            @if (!string.IsNullOrWhiteSpace(teamBLogoPath))
+                            {
+                                <img src="@Url.Content(teamBLogoPath)" class="team-logo-inline" alt="@Model.TeamB?.Name logo" />
+                            }
+                            else if (Model.TeamB is not null)
+                            {
+                                <span class="team-logo-fallback">@TeamLogoResolver.GetBadgeText(Model.TeamB.Name, Model.TeamB.Tag)</span>
+                            }
+                        </span>
+                    </h2>
+                    <p class="text-muted mb-0">@Model.ScheduledAtUtc.ToLocalTime().ToString("dddd, MMM dd yyyy • HH:mm") local time</p>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-3 col-6">
+                    <div class="esports-card h-100 p-3">
+                        <div class="text-uppercase text-muted small fw-bold mb-1">Event</div>
+                        @if (!string.IsNullOrWhiteSpace(eventSlug))
+                        {
+                            <a class="text-light fw-semibold text-decoration-none" asp-controller="Events" asp-action="DetailsBySlug" asp-route-slug="@eventSlug">@(Model.Event?.Name ?? "Unknown event")</a>
+                        }
+                        else
+                        {
+                            <div class="text-light fw-semibold">@(Model.Event?.Name ?? "Unknown event")</div>
+                        }
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="esports-card h-100 p-3">
+                        <div class="text-uppercase text-muted small fw-bold mb-1">Venue</div>
+                        <div class="text-light fw-semibold">@(Model.Event?.EventVenue?.City ?? "TBA")</div>
+                        <div class="text-secondary small">@(Model.Event?.EventVenue?.CountryCode ?? string.Empty)</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="esports-card h-100 p-3">
+                        <div class="text-uppercase text-muted small fw-bold mb-1">Status</div>
+                        <div class="text-light fw-semibold">@(isFinished ? "Final" : "Scheduled")</div>
+                        <div class="text-secondary small">@Model.ScheduledAtUtc.ToLocalTime().ToString("MMM dd yyyy")</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="esports-card h-100 p-3">
+                        <div class="text-uppercase text-muted small fw-bold mb-1">Maps</div>
+                        <div class="text-light fw-semibold">@Model.Maps.Count</div>
+                        <div class="text-secondary small">@(Model.Maps.Count == 1 ? "map recorded" : "maps recorded")</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-top pt-4" style="border-color: rgba(255,255,255,0.08) !important;">
+                <h3 class="h5 text-info mb-3">Map breakdown</h3>
+
+                @if (Model.Maps.Count == 0)
+                {
+                    <div class="text-muted text-center py-4">No map data has been added for this match yet.</div>
+                }
+                else
+                {
+                    <div class="row g-3">
+                        @foreach (var map in Model.Maps.OrderBy(map => map.MapSequence))
+                        {
+                            var teamAWonMap = map.TeamAScore > map.TeamBScore;
+                            var teamBWonMap = map.TeamBScore > map.TeamAScore;
+                            <div class="col-md-6">
+                                <div class="match-map-score-tile esports-card h-100 p-3 position-relative overflow-hidden" data-map="@map.Map">
+                                    <div class="match-map-score-tile__overlay"></div>
+                                    <div class="match-map-score-tile__content">
+                                        <div class="d-flex justify-content-between align-items-start gap-2">
+                                            <div>
+                                                <div class="text-uppercase text-muted small fw-bold">Map @map.MapSequence</div>
+                                                <div class="text-light fw-semibold">@map.Map</div>
+                                            </div>
+                                            @if (map.WentToOvertime)
+                                            {
+                                                <span class="badge bg-warning text-dark px-2 py-1">OT</span>
+                                            }
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center gap-2 mt-auto">
+                                            <div class="text-center flex-fill">
+                                                <div class="text-secondary small">@(Model.TeamA?.Tag ?? "A")</div>
+                                                <div class="match-map-score-tile__score @(teamAWonMap ? "text-info" : "text-light")">@map.TeamAScore</div>
+                                            </div>
+                                            <div class="text-muted fw-semibold text-uppercase">vs</div>
+                                            <div class="text-center flex-fill">
+                                                <div class="text-secondary small">@(Model.TeamB?.Tag ?? "B")</div>
+                                                <div class="match-map-score-tile__score @(teamBWonMap ? "text-accent" : "text-light")">@map.TeamBScore</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="cs2-glass-card shadow-lg p-4 h-100 border-0">
+            <h3 class="h5 text-info mb-3">Series context</h3>
+            <div class="list-group list-group-flush bg-transparent">
+                <div class="list-group-item bg-transparent text-light border-secondary px-0 d-flex justify-content-between align-items-center" style="border-color: rgba(255,255,255,0.08) !important;">
+                    <span class="text-muted">Event</span>
+                    <span class="fw-semibold">@(Model.Event?.Name ?? "Unknown")</span>
+                </div>
+                <div class="list-group-item bg-transparent text-light border-secondary px-0 d-flex justify-content-between align-items-center" style="border-color: rgba(255,255,255,0.08) !important;">
+                    <span class="text-muted">Format</span>
+                    <span class="fw-semibold">@MatchDisplayHelper.GetFormatLabel(Model.Format)</span>
+                </div>
+                <div class="list-group-item bg-transparent text-light border-secondary px-0 d-flex justify-content-between align-items-center" style="border-color: rgba(255,255,255,0.08) !important;">
+                    <span class="text-muted">Scheduled</span>
+                    <span class="fw-semibold">@Model.ScheduledAtUtc.ToLocalTime().ToString("MMM dd yyyy")</span>
+                </div>
+                <div class="list-group-item bg-transparent text-light border-secondary px-0 d-flex justify-content-between align-items-center" style="border-color: rgba(255,255,255,0.08) !important;">
+                    <span class="text-muted">Status</span>
+                    <span class="fw-semibold">@(isFinished ? "Finished" : "Upcoming")</span>
+                </div>
+            </div>
+
+            @if (Model.Event is not null)
+            {
+                <div class="mt-4 p-3 rounded-3" style="background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.18);">
+                    <div class="text-uppercase text-muted small fw-bold mb-2">Open event</div>
+                    <a asp-controller="Events" asp-action="DetailsBySlug" asp-route-slug="@eventSlug" class="text-light fw-semibold text-decoration-none">Go to @Model.Event.Name</a>
+                </div>
+            }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,196 @@
+@model IReadOnlyList<cs2_esports.Models.Match>
+@{
+    ViewData["Title"] = "Matches";
+
+    var upcomingMatches = Model.Where(match => !match.IsFinished)
+        .OrderBy(match => match.ScheduledAtUtc)
+        .ToList();
+    var finishedMatches = Model.Where(match => match.IsFinished)
+        .OrderByDescending(match => match.ScheduledAtUtc)
+        .ToList();
+}
+
+<div class="matches-page">
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <h1 class="h2 mb-1 text-primary fw-bold">Matches</h1>
+        <p class="text-muted mb-0">Track upcoming series and review finished results across the event calendar.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Create" class="btn btn-primary">Create Match</a>
+        <a asp-controller="Events" asp-action="Index" class="btn btn-outline-info">Browse events</a>
+    </div>
+</div>
+
+<section class="cs2-glass-card shadow-lg mb-4 overflow-hidden border-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 px-4 py-3 border-bottom" style="border-color: rgba(255,255,255,0.08) !important;">
+        <div>
+            <h2 class="h5 mb-1 text-light">Upcoming</h2>
+        </div>
+        <span class="badge border border-info px-3 py-2 fw-semibold" style="background: rgba(17, 24, 39, 0.94); color: #E0F2FE; border-color: rgba(34, 211, 238, 0.4) !important;">@upcomingMatches.Count scheduled</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="cs2-table-head">
+                <tr>
+                    <th class="ps-4">Match</th>
+                    <th>Event</th>
+                    <th>Format</th>
+                    <th>Schedule</th>
+                    <th class="text-end pe-4">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (upcomingMatches.Count == 0)
+            {
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-5">No upcoming matches are scheduled right now.</td>
+                </tr>
+            }
+            else
+            {
+                foreach (var match in upcomingMatches)
+                {
+                    var teamALogoPath = match.TeamA is not null ? TeamLogoResolver.GetLogoPath(match.TeamA.Name, match.TeamA.Tag) : string.Empty;
+                    var teamBLogoPath = match.TeamB is not null ? TeamLogoResolver.GetLogoPath(match.TeamB.Name, match.TeamB.Tag) : string.Empty;
+                    <tr class="clickable-row border-top border-secondary" onclick="window.location='@Url.Action("Details", "Matches", new { id = match.Id })'">
+                        <td class="ps-4">
+                            <div class="d-flex flex-column gap-2">
+                                <span class="badge border border-info align-self-start px-2 py-1 fw-semibold" style="background: rgba(17, 24, 39, 0.94); color: #E0F2FE; border-color: rgba(34, 211, 238, 0.4) !important;">Upcoming</span>
+                                <div class="match-versus-layout match-versus-layout--compact text-light fw-semibold">
+                                    <span class="match-versus-layout__team match-versus-layout__team--left">
+                                        @if (!string.IsNullOrWhiteSpace(teamALogoPath))
+                                        {
+                                            <img src="@Url.Content(teamALogoPath)" class="team-logo" alt="@match.TeamA?.Name logo" />
+                                        }
+                                        else if (match.TeamA is not null)
+                                        {
+                                            <span class="team-logo-fallback">@TeamLogoResolver.GetBadgeText(match.TeamA.Name, match.TeamA.Tag)</span>
+                                        }
+                                        <span class="match-versus-layout__name match-team-name text-truncate">@(match.TeamA?.Name ?? "TBD")</span>
+                                    </span>
+                                    <span class="match-versus-layout__vs text-uppercase">VS</span>
+                                    <span class="match-versus-layout__team match-versus-layout__team--right">
+                                        @if (!string.IsNullOrWhiteSpace(teamBLogoPath))
+                                        {
+                                            <img src="@Url.Content(teamBLogoPath)" class="team-logo" alt="@match.TeamB?.Name logo" />
+                                        }
+                                        else if (match.TeamB is not null)
+                                        {
+                                            <span class="team-logo-fallback">@TeamLogoResolver.GetBadgeText(match.TeamB.Name, match.TeamB.Tag)</span>
+                                        }
+                                        <span class="match-versus-layout__name match-team-name text-truncate">@(match.TeamB?.Name ?? "TBD")</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-light">
+                            <div class="fw-semibold">@(match.Event?.Name ?? "Unknown event")</div>
+                            <div class="text-secondary small">@match.Event?.Organizer</div>
+                        </td>
+                        <td class="text-light">@MatchDisplayHelper.GetFormatLabel(match.Format)</td>
+                        <td class="text-secondary">
+                            <div class="fw-semibold text-light">@match.ScheduledAtUtc.ToLocalTime().ToString("MMM dd, yyyy")</div>
+                            <div class="small">@match.ScheduledAtUtc.ToLocalTime().ToString("HH:mm") local time</div>
+                        </td>
+                        <td class="text-end pe-4">
+                            <span class="badge bg-dark border border-info text-info px-3 py-2">Scheduled</span>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="cs2-glass-card shadow-lg overflow-hidden border-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 px-4 py-3 border-bottom" style="border-color: rgba(255,255,255,0.08) !important;">
+        <div>
+            <h2 class="h5 mb-1 text-light">Finished</h2>
+            <p class="text-muted mb-0">Final scores and map history from completed series.</p>
+        </div>
+        <span class="badge bg-success px-3 py-2">@finishedMatches.Count completed</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="cs2-table-head">
+                <tr>
+                    <th class="ps-4">Match</th>
+                    <th>Final score</th>
+                    <th>Event</th>
+                    <th>Format</th>
+                    <th class="text-end pe-4">Maps</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (finishedMatches.Count == 0)
+            {
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-5">No finished matches have been recorded yet.</td>
+                </tr>
+            }
+            else
+            {
+                foreach (var match in finishedMatches)
+                {
+                    var teamALogoPath = match.TeamA is not null ? TeamLogoResolver.GetLogoPath(match.TeamA.Name, match.TeamA.Tag) : string.Empty;
+                    var teamBLogoPath = match.TeamB is not null ? TeamLogoResolver.GetLogoPath(match.TeamB.Name, match.TeamB.Tag) : string.Empty;
+                    <tr class="clickable-row border-top border-secondary" onclick="window.location='@Url.Action("Details", "Matches", new { id = match.Id })'">
+                        <td class="ps-4">
+                            <div class="d-flex flex-column gap-2">
+                                <span class="badge bg-success align-self-start px-2 py-1">Finished</span>
+                                <div class="match-versus-layout match-versus-layout--compact text-light fw-semibold">
+                                    <span class="match-versus-layout__team match-versus-layout__team--left">
+                                        @if (!string.IsNullOrWhiteSpace(teamALogoPath))
+                                        {
+                                            <img src="@Url.Content(teamALogoPath)" class="team-logo" alt="@match.TeamA?.Name logo" />
+                                        }
+                                        else if (match.TeamA is not null)
+                                        {
+                                            <span class="team-logo-fallback">@TeamLogoResolver.GetBadgeText(match.TeamA.Name, match.TeamA.Tag)</span>
+                                        }
+                                        <span class="match-versus-layout__name match-team-name text-truncate">@(match.TeamA?.Name ?? "TBD")</span>
+                                    </span>
+                                    <span class="match-versus-layout__vs text-uppercase">VS</span>
+                                    <span class="match-versus-layout__team match-versus-layout__team--right">
+                                        @if (!string.IsNullOrWhiteSpace(teamBLogoPath))
+                                        {
+                                            <img src="@Url.Content(teamBLogoPath)" class="team-logo" alt="@match.TeamB?.Name logo" />
+                                        }
+                                        else if (match.TeamB is not null)
+                                        {
+                                            <span class="team-logo-fallback">@TeamLogoResolver.GetBadgeText(match.TeamB.Name, match.TeamB.Tag)</span>
+                                        }
+                                        <span class="match-versus-layout__name match-team-name text-truncate">@(match.TeamB?.Name ?? "TBD")</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="fw-bold text-light">@match.TeamAScore - @match.TeamBScore</td>
+                        <td class="text-light">
+                            <div class="fw-semibold">@(match.Event?.Name ?? "Unknown event")</div>
+                            <div class="text-secondary small">@match.Event?.Organizer</div>
+                        </td>
+                        <td class="text-light">@MatchDisplayHelper.GetFormatLabel(match.Format)</td>
+                        <td class="text-end pe-4">
+                            <span class="badge bg-dark border border-secondary text-light px-3 py-2">@match.Maps.Count map@(match.Maps.Count == 1 ? string.Empty : "s")</span>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</section>
+</div>
+
+<style>
+    .matches-page .table-hover tbody tr:hover,
+    .matches-page .clickable-row:hover {
+        background-color: transparent !important;
+        color: inherit !important;
+    }
+</style>

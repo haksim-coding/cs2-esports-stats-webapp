@@ -5,7 +5,7 @@ This project uses SQL Server with Entity Framework Core and the database name `c
 ## Tables and Core Fields
 
 ### Users
-Base table for all user types.
+Base table for shared user fields.
 - `Id` - primary key
 - `Username`
 - `DisplayName`
@@ -14,22 +14,17 @@ Base table for all user types.
 - `CountryCode`
 - `RegisteredAtUtc`
 - `IsSuspended`
-- `UserType` - discriminator for inheritance
-
-Derived rows are stored in the same table using TPH inheritance:
-- `ForumUser`
-- `AdminUser`
 
 ### ForumUsers
-Represents forum members.
-- Inherits the fields from `Users`
+Forum account details stored in a separate table.
+- `Id` - primary key and foreign key to `Users`
 - `LastActiveAtUtc`
 - `IsPremiumMember`
 - `Password`
 
 ### AdminUsers
-Represents admin or moderation users.
-- Inherits the fields from `Users`
+Admin and moderation accounts stored in a separate table.
+- `Id` - primary key and foreign key to `Users`
 - `HiredAtUtc`
 - `LastModerationActionAtUtc`
 - `PermissionGroup`
@@ -67,6 +62,29 @@ Roster entries for teams.
 - `TotalMapsPlayed`
 - `JoinedTeamAtUtc`
 - `TeamId` - foreign key to `Teams`
+
+### Matches
+Series records tied to events and two teams.
+- `Id` - primary key
+- `ScheduledAtUtc`
+- `IsFinished`
+- `Format`
+- `TeamAScore`
+- `TeamBScore`
+- `FinishedAtUtc`
+- `EventId` - foreign key to `Tournaments`
+- `TeamAId` - foreign key to `Teams`
+- `TeamBId` - foreign key to `Teams`
+
+### MatchMaps
+Per-map results for finished matches.
+- `Id` - primary key
+- `MapSequence`
+- `Map`
+- `TeamAScore`
+- `TeamBScore`
+- `WentToOvertime`
+- `MatchId` - foreign key to `Matches`
 
 ### Tournaments
 Event or tournament records.
@@ -130,9 +148,13 @@ Join table for saved player favorites.
 - One `ForumUser` can save many favorite `Teams` and many favorite `Players`.
 - One `Forum` can have many `ForumComments`.
 - One `Forum` can optionally point to one `Tournament`.
+- One `Tournament` can have many `Matches`.
+- One `Match` belongs to one `Tournament` and two `Teams`.
+- One `Match` can have many `MatchMaps`.
 
 ## Notes
 
-- `User` inheritance is stored with TPH mapping in a single `Users` table.
+- `User` inheritance is stored with TPT mapping across `Users`, `ForumUsers`, and `AdminUsers`.
 - Decimal values such as prize money and ratings use explicit SQL Server precision.
 - Enum properties like `Tier`, `Role`, and `Category` are stored as integers.
+- Match format and map pool enums are also stored as integers.

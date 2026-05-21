@@ -1,0 +1,13 @@
+@model DateTime?
+@using System.Globalization
+@{
+    var currentCulture = CultureInfo.CurrentCulture.Name;
+    var isCroatian = currentCulture.StartsWith("hr", StringComparison.OrdinalIgnoreCase);
+    var displayValue = Model.HasValue ? Model.Value.ToLocalTime().ToString(isCroatian ? "dd.MM.yyyy HH:mm" : "MM/dd/yyyy HH:mm", CultureInfo.CurrentCulture) : string.Empty;
+    var placeholder = isCroatian ? "dd.MM.yyyy HH:mm" : "MM/dd/yyyy HH:mm";
+}
+
+<div class="date-picker-control" data-date-picker data-date-culture="@currentCulture">
+    <input type="hidden" name="@ViewData.TemplateInfo.GetFullHtmlFieldName(string.Empty)" value="@(Model.HasValue ? Model.Value.ToUniversalTime().ToString("O") : string.Empty)" data-date-picker-hidden />
+    <input type="text" class="form-control cs2-form-control" value="@displayValue" placeholder="@placeholder" autocomplete="off" data-date-picker-input />
+</div>

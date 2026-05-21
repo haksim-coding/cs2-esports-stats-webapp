@@ -1,11 +1,16 @@
 @model IReadOnlyList<cs2_esports.Models.Forum>
 @{
     ViewData["Title"] = "Forums";
+    var currentUserType = Context.Session.GetString(AuthSessionKeys.UserType);
+    var isAdminUser = string.Equals(currentUserType, AuthSessionKeys.AdminUserType, StringComparison.Ordinal);
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h2 text-primary fw-bold mb-0">Forum Threads</h1>
-    <a asp-action="Create" class="btn btn-primary px-4 fw-bold shadow-sm">Create Thread</a>
+    @if (!isAdminUser)
+    {
+        <a asp-action="Create" class="btn btn-primary px-4 fw-bold shadow-sm">Create Thread</a>
+    }
 </div>
 
 <div class="cs2-glass-card table-responsive p-0 border-0 shadow-lg">

@@ -1,12 +1,22 @@
 ﻿@model cs2_esports.Models.Event
 @{
     ViewData["Title"] = "Event Details";
+    var currentUserType = Context.Session.GetString(AuthSessionKeys.UserType);
+    var isAdminUser = string.Equals(currentUserType, AuthSessionKeys.AdminUserType, StringComparison.Ordinal)
+        && Context.Session.GetInt32(AuthSessionKeys.AdminUserId).HasValue;
 }
 
 <div class="esports-card mb-4 p-4">
-    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4" style="border-color: #2d3340 !important">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 border-bottom pb-3 mb-4" style="border-color: #2d3340 !important">
         <h1 class="h2 text-light fw-bold mb-0">@Model.Name</h1>
-        <span class="badge @(Model.Tier == cs2_esports.Models.EventTier.S ? "event-tier-gold" : Model.Tier == cs2_esports.Models.EventTier.A ? "event-tier-green" : "event-tier-neutral") fs-6 px-3 py-2">@Model.Tier</span>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="badge @(Model.Tier == cs2_esports.Models.EventTier.S ? "event-tier-gold" : Model.Tier == cs2_esports.Models.EventTier.A ? "event-tier-green" : "event-tier-neutral") fs-6 px-3 py-2">@Model.Tier</span>
+            @if (isAdminUser)
+            {
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-info btn-sm">Edit</a>
+                <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger btn-sm">Delete</a>
+            }
+        </div>
     </div>
 
     <div class="row text-center mb-2">
@@ -73,4 +83,95 @@
             }
         </div>
     </div>
+</div>
+
+<div class="esports-card mt-4 p-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 border-bottom pb-3 mb-4" style="border-color: #2d3340 !important">
+        <div>
+            <h2 class="h5 text-info mb-1">Matches</h2>
+            <p class="text-muted mb-0">Scheduled and finished matches for this event.</p>
+        </div>
+        <span class="badge bg-dark border border-info text-info px-3 py-2">@Model.Matches.Count total</span>
+    </div>
+
+    @if (Model.Matches.Count == 0)
+    {
+        <div class="text-muted text-center py-4">No matches have been attached to this event yet.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="cs2-table-head">
+                    <tr>
+                        <th class="ps-4">Match</th>
+                        <th>Schedule / Result</th>
+                        <th>Format</th>
+                        <th class="text-end pe-4">Maps</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var match in Model.Matches.OrderBy(m => m.ScheduledAtUtc))
+                {
+                    var matchUrl = Url.Action("Details", "Matches", new { id = match.Id });
+                    var isFinished = match.IsFinished;
+                    var statusBadgeClass = isFinished ? "bg-success" : "bg-dark border border-secondary text-light";
+                    var teamALogoPath = match.TeamA is not null ? TeamLogoResolver.GetLogoPath(match.TeamA.Name, match.TeamA.Tag) : string.Empty;
+                    var teamBLogoPath = match.TeamB is not null ? TeamLogoResolver.GetLogoPath(match.TeamB.Name, match.TeamB.Tag) : string.Empty;
+                    <tr class="clickable-row border-top border-secondary" onclick="window.location='@matchUrl'">
+                        <td class="ps-4">
+                            <div class="d-flex flex-column gap-2">
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <span class="badge @statusBadgeClass px-2 py-1">@(isFinished ? "Finished" : "Upcoming")</span>
+                                    <span class="text-light fw-semibold">Match #@match.Id</span>
+                                </div>
+                                <div class="d-flex flex-wrap align-items-center gap-2 text-light fw-semibold">
+                                    <span class="d-inline-flex align-items-center gap-2">
+                                        @if (!string.IsNullOrWhiteSpace(teamALogoPath))
+                                        {
+                                            <img src="@Url.Content(teamALogoPath)" class="team-logo" alt="@match.TeamA?.Name logo" />
+                                        }
+                                        else if (match.TeamA is not null)
+                                        {
+                                            <span class="team-logo-fallback">@TeamLogoResolver.GetBadgeText(match.TeamA.Name, match.TeamA.Tag)</span>
+                                        }
+                                        <span>@(match.TeamA?.Name ?? "TBD")</span>
+                                    </span>
+                                    <span class="text-info">vs</span>
+                                    <span class="d-inline-flex align-items-center gap-2">
+                                        @if (!string.IsNullOrWhiteSpace(teamBLogoPath))
+                                        {
+                                            <img src="@Url.Content(teamBLogoPath)" class="team-logo" alt="@match.TeamB?.Name logo" />
+                                        }
+                                        else if (match.TeamB is not null)
+                                        {
+                                            <span class="team-logo-fallback">@TeamLogoResolver.GetBadgeText(match.TeamB.Name, match.TeamB.Tag)</span>
+                                        }
+                                        <span>@(match.TeamB?.Name ?? "TBD")</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-secondary">
+                            @if (isFinished)
+                            {
+                                <div class="fw-semibold text-light">@match.TeamAScore - @match.TeamBScore</div>
+                                <div class="small">Finished @(match.FinishedAtUtc?.ToLocalTime().ToString("MMM dd, yyyy HH:mm") ?? string.Empty)</div>
+                            }
+                            else
+                            {
+                                <div class="fw-semibold text-light">@match.ScheduledAtUtc.ToLocalTime().ToString("MMM dd, yyyy HH:mm")</div>
+                                <div class="small">@match.ScheduledAtUtc.ToLocalTime().ToString("dddd")</div>
+                            }
+                        </td>
+                        <td class="text-light">@match.Format</td>
+                        <td class="text-end pe-4">
+                            <span class="badge bg-dark border border-secondary text-light px-3 py-2">@match.Maps.Count map@(match.Maps.Count == 1 ? string.Empty : "s")</span>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
 </div>

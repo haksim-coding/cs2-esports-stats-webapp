@@ -3,12 +3,12 @@ using cs2_esports.Models;
 using cs2_esports.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using cs2_esports.Helpers;
 
 namespace cs2_esports.Controllers;
 
 public class AuthController : Controller
 {
-    private const string ForumUserSessionKey = "ForumUserId";
     private readonly IForumRepository _forumRepository;
     private readonly Cs2ScopeDbContext _dbContext;
 
@@ -38,16 +38,17 @@ public class AuthController : Controller
         var forumUser = _forumRepository.GetForumUserByUsernameOrEmail(input.Username);
         if (forumUser is not null && string.Equals(forumUser.Password, input.Password, StringComparison.Ordinal))
         {
-            HttpContext.Session.SetInt32(ForumUserSessionKey, forumUser.Id);
+            SetAuthenticatedForumUser(forumUser.Id);
             forumUser.LastActiveAtUtc = DateTime.UtcNow;
 
             TempData["LoginMessage"] = $"Welcome back, {forumUser.DisplayName}.";
             return LocalRedirect(returnUrl ?? Url.Action("Index", "Home")!);
         }
 
+        var normalizedUsername = input.Username.Trim().ToLowerInvariant();
         var adminUser = _dbContext.AdminUsers.FirstOrDefault(user =>
-            string.Equals(user.Username, input.Username, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(user.Email, input.Username, StringComparison.OrdinalIgnoreCase));
+            user.Username.ToLower() == normalizedUsername ||
+            user.Email.ToLower() == normalizedUsername);
 
         if (adminUser is null || !string.Equals(adminUser.Password, input.Password, StringComparison.Ordinal))
         {
@@ -56,7 +57,7 @@ public class AuthController : Controller
             return View(input);
         }
 
-        HttpContext.Session.SetInt32(ForumUserSessionKey, adminUser.Id);
+        SetAuthenticatedAdminUser(adminUser.Id);
         TempData["LoginMessage"] = $"Welcome back, {adminUser.DisplayName}.";
         return LocalRedirect(returnUrl ?? Url.Action("Index", "Home")!);
     }
@@ -86,7 +87,7 @@ public class AuthController : Controller
             return View(input);
         }
 
-        HttpContext.Session.SetInt32(ForumUserSessionKey, createdUser.Id);
+        SetAuthenticatedForumUser(createdUser.Id);
         TempData["LoginMessage"] = $"Welcome, {createdUser.DisplayName}. Your account is ready.";
 
         return LocalRedirect(returnUrl ?? Url.Action("Index", "Home")!);
@@ -95,7 +96,7 @@ public class AuthController : Controller
     [HttpGet]
     public IActionResult Logout()
     {
-        HttpContext.Session.Remove(ForumUserSessionKey);
+        ClearAuthenticationSession();
         TempData["LoginMessage"] = "You have been logged out.";
         return RedirectToAction("Index", "Home");
     }
@@ -121,7 +122,34 @@ public class AuthController : Controller
 
     private ForumUser? GetCurrentForumUser()
     {
-        var userId = HttpContext.Session.GetInt32(ForumUserSessionKey);
+        var userType = HttpContext.Session.GetString(AuthSessionKeys.UserType);
+        if (!string.Equals(userType, AuthSessionKeys.ForumUserType, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var userId = HttpContext.Session.GetInt32(AuthSessionKeys.ForumUserId);
         return userId.HasValue ? _forumRepository.GetForumUserById(userId.Value) : null;
+    }
+
+    private void SetAuthenticatedForumUser(int userId)
+    {
+        ClearAuthenticationSession();
+        HttpContext.Session.SetInt32(AuthSessionKeys.ForumUserId, userId);
+        HttpContext.Session.SetString(AuthSessionKeys.UserType, AuthSessionKeys.ForumUserType);
+    }
+
+    private void SetAuthenticatedAdminUser(int userId)
+    {
+        ClearAuthenticationSession();
+        HttpContext.Session.SetInt32(AuthSessionKeys.AdminUserId, userId);
+        HttpContext.Session.SetString(AuthSessionKeys.UserType, AuthSessionKeys.AdminUserType);
+    }
+
+    private void ClearAuthenticationSession()
+    {
+        HttpContext.Session.Remove(AuthSessionKeys.ForumUserId);
+        HttpContext.Session.Remove(AuthSessionKeys.AdminUserId);
+        HttpContext.Session.Remove(AuthSessionKeys.UserType);
     }
 }

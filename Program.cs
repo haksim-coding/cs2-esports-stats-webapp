@@ -19,6 +19,7 @@ builder.Services.AddDbContext<Cs2ScopeDbContext>(options =>
 
 builder.Services.AddScoped<ITeamRepository, EfTeamRepository>();
 builder.Services.AddScoped<IEventRepository, EfEventRepository>();
+builder.Services.AddScoped<IMatchRepository, EfMatchRepository>();
 builder.Services.AddScoped<IPlayerRepository, EfPlayerRepository>();
 builder.Services.AddScoped<IForumRepository, EfForumRepository>();
 
@@ -28,9 +29,10 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<Cs2ScopeDbContext>();
     app.Logger.LogInformation(
-        "Database seeded with {TeamCount} teams, {EventCount} events, {ForumCount} forums and {PlayerCount} players.",
+        "Database seeded with {TeamCount} teams, {EventCount} events, {MatchCount} matches, {ForumCount} forums and {PlayerCount} players.",
         await dbContext.Teams.CountAsync(),
         await dbContext.Tournaments.CountAsync(),
+        await dbContext.Matches.CountAsync(),
         await dbContext.Forums.CountAsync(),
         await dbContext.Players.CountAsync());
 }

@@ -7,6 +7,7 @@ namespace cs2_esports.Models
         public List<Event> UpcomingEvents { get; set; } = new();
         public List<Player> TopPlayers { get; set; } = new();
         public List<Team> TopTeams { get; set; } = new();
-        public ForumUser? LoggedInUser { get; set; }
+        public User? LoggedInUser { get; set; }
+        public bool CanCreateForumPost { get; set; }
     }
 }

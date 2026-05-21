@@ -6,4 +6,7 @@ public interface IEventRepository
 {
     IReadOnlyList<Event> GetAll();
     Event? GetById(int id);
+    void Add(Event eventItem);
+    void Update(Event eventItem);
+    void Delete(int id);
 }

@@ -1,0 +1,72 @@
+@model cs2_esports.Models.PlayerEditModel
+@{
+    ViewData["Title"] = "Edit Player";
+}
+
+<div class="cs2-glass-card shadow-lg p-4 p-md-5 border-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4 border-bottom pb-3" style="border-color: rgba(255,255,255,0.08) !important;">
+        <div>
+            <h1 class="h3 text-primary fw-bold mb-1">Edit Player</h1>
+            <p class="text-muted mb-0">Update the player profile and team assignment.</p>
+        </div>
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-info">Back to player</a>
+    </div>
+
+    <form asp-action="Edit" method="post" class="row g-3">
+        @Html.AntiForgeryToken()
+        <input asp-for="Id" type="hidden" />
+        <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+
+        <div class="col-md-4">
+            <label asp-for="Nickname" class="form-label text-light"></label>
+            <input asp-for="Nickname" class="form-control cs2-form-control" />
+            <span asp-validation-for="Nickname" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="FullName" class="form-label text-light"></label>
+            <input asp-for="FullName" class="form-control cs2-form-control" />
+            <span asp-validation-for="FullName" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="CountryCode" class="form-label text-light"></label>
+            <input asp-for="CountryCode" class="form-control cs2-form-control" maxlength="2" />
+            <span asp-validation-for="CountryCode" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label text-light">Date of Birth</label>
+            @Html.EditorFor(model => model.DateOfBirth)
+            <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="Role" class="form-label text-light"></label>
+            <select asp-for="Role" class="form-select cs2-input" asp-items="Html.GetEnumSelectList<cs2_esports.Models.PlayerRole>()"></select>
+            <span asp-validation-for="Role" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="TeamId" class="form-label text-light"></label>
+            <select asp-for="TeamId" class="form-select cs2-input" asp-items="ViewBag.Teams">
+                <option value="">Free agent</option>
+            </select>
+            <span asp-validation-for="TeamId" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="Rating2" class="form-label text-light"></label>
+            <input asp-for="Rating2" class="form-control cs2-form-control" />
+            <span asp-validation-for="Rating2" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="TotalMapsPlayed" class="form-label text-light"></label>
+            <input asp-for="TotalMapsPlayed" class="form-control cs2-form-control" />
+            <span asp-validation-for="TotalMapsPlayed" class="text-danger small"></span>
+        </div>
+
+        <div class="col-12 d-flex gap-2 mt-2">
+            <button type="submit" class="btn btn-primary px-4 fw-bold">Save changes</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary px-4">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

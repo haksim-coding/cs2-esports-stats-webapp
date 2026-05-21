@@ -5,6 +5,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h2 text-primary fw-bold mb-0">Active Players</h1>
+    <a asp-action="Create" class="btn btn-primary">Create Player</a>
 </div>
 
 <div class="cs2-glass-card p-0 overflow-hidden shadow-lg border-0 players-table">
@@ -55,7 +56,7 @@
                         }
                         else
                         {
-                            <span class="text-secondary small fst-italic">Free Agent</span>
+                            <span class="badge bg-black border border-secondary text-secondary p-2 shadow-sm">?</span>
                         }
                     </td>
                     <td class="text-secondary fw-semibold">

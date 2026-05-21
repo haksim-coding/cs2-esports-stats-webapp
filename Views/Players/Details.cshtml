@@ -2,6 +2,9 @@
 @{
     ViewData["Title"] = "Player Details";
     var teamLogoPath = Model.Team is null ? null : TeamLogoResolver.GetLogoPath(Model.Team.Name, Model.Team.Tag);
+    var currentUserType = Context.Session.GetString(AuthSessionKeys.UserType);
+    var isAdminUser = string.Equals(currentUserType, AuthSessionKeys.AdminUserType, StringComparison.Ordinal)
+        && Context.Session.GetInt32(AuthSessionKeys.AdminUserId).HasValue;
 }
 
 <div class="esports-card mb-4">
@@ -10,6 +13,7 @@
         <div class="col-md-5 text-center text-md-start border-md-end mb-4 mb-md-0" style="border-color: #2d3340 !important">
             <div class="d-flex align-items-center justify-content-between gap-3 mb-1">
                 <h1 class="display-5 text-light fw-bold mb-0">@Model.Nickname</h1>
+                <div class="d-flex gap-2 align-items-center">
                 @if (Context.Session.GetInt32("ForumUserId").HasValue)
                 {
                     <form asp-controller="Favorites" asp-action="TogglePlayer" asp-route-id="@Model.Id" asp-route-returnUrl="@Context.Request.Path" method="post" class="player-save-action" onclick="event.stopPropagation();">
@@ -20,6 +24,12 @@
                         </button>
                     </form>
                 }
+                @if (isAdminUser)
+                {
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-info btn-sm">Edit</a>
+                    <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger btn-sm">Delete</a>
+                }
+            </div>
             </div>
             <p class="text-muted fs-5 mb-3">@Model.FullName</p>
             

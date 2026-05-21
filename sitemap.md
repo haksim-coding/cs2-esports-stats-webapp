@@ -8,11 +8,16 @@ The auth-friendly routes are defined in [Program.cs](Program.cs) before the defa
 | --- | --- | --- | --- |
 | `/` | GET | `HomeController.Index` | `Views/Home/Index.cshtml` |
 | `/teams` | GET | `TeamsController.Index` | `Views/Teams/Index.cshtml` |
+| `/teams/create` | GET, POST | `TeamsController.Create` | `Views/Teams/Create.cshtml` |
+| `/teams/edit/{id}` | GET, POST | `TeamsController.Edit(int id)` / `TeamsController.Edit(TeamUpsertInputModel)` | `Views/Teams/Edit.cshtml` |
+| `/teams/delete/{id}` | GET, POST | `TeamsController.Delete(int id)` / `TeamsController.DeleteConfirmed(int id)` | `Views/Teams/Delete.cshtml` |
 | `/team/{slug}` | GET | `TeamsController.DetailsBySlug(string slug)` | `Views/Teams/Details.cshtml` |
 | `/players` | GET | `PlayersController.Index` | `Views/Players/Index.cshtml` |
 | `/player/{slug}` | GET | `PlayersController.DetailsBySlug(string slug)` | `Views/Players/Details.cshtml` |
 | `/events` | GET | `EventsController.Index` | `Views/Events/Index.cshtml` |
 | `/event/{slug}` | GET | `EventsController.DetailsBySlug(string slug)` | `Views/Events/Details.cshtml` |
+| `/matches` | GET | `MatchesController.Index` | `Views/Matches/Index.cshtml` |
+| `/matches/{id}` | GET | `MatchesController.Details(int id)` | `Views/Matches/Details.cshtml` |
 | `/forums` | GET | `ForumsController.Index` | `Views/Forums/Index.cshtml` |
 | `/forums/create` | GET | `ForumsController.Create` | `Views/Forums/Create.cshtml` |
 | `/forums/{id}` | GET | `ForumsController.Details(int id)` | `Views/Forums/Details.cshtml` |
@@ -41,11 +46,16 @@ The default route is still enabled in [Program.cs](Program.cs), so the older con
 | `/Home/Index` | GET | `HomeController.Index` | `Views/Home/Index.cshtml` |
 | `/Home/Privacy` | GET | `HomeController.Privacy` | `Views/Home/Privacy.cshtml` |
 | `/Teams/Index` | GET | `TeamsController.Index` | `Views/Teams/Index.cshtml` |
+| `/Teams/Create` | GET, POST | `TeamsController.Create` | `Views/Teams/Create.cshtml` |
+| `/Teams/Edit/{id}` | GET, POST | `TeamsController.Edit` | `Views/Teams/Edit.cshtml` |
+| `/Teams/Delete/{id}` | GET, POST | `TeamsController.Delete` | `Views/Teams/Delete.cshtml` |
 | `/Teams/Details/{id}` | GET | `TeamsController.Details(int id)` | `Views/Teams/Details.cshtml` |
 | `/Players/Index` | GET | `PlayersController.Index` | `Views/Players/Index.cshtml` |
 | `/Players/Details/{id}` | GET | `PlayersController.Details(int id)` | `Views/Players/Details.cshtml` |
 | `/Events/Index` | GET | `EventsController.Index` | `Views/Events/Index.cshtml` |
 | `/Events/Details/{id}` | GET | `EventsController.Details(int id)` | `Views/Events/Details.cshtml` |
+| `/Matches/Index` | GET | `MatchesController.Index` | `Views/Matches/Index.cshtml` |
+| `/Matches/Details/{id}` | GET | `MatchesController.Details(int id)` | `Views/Matches/Details.cshtml` |
 | `/Forums/Index` | GET | `ForumsController.Index` | `Views/Forums/Index.cshtml` |
 | `/Forums/Create` | GET, POST | `ForumsController.Create` | `Views/Forums/Create.cshtml` |
 | `/Forums/Details/{id}` | GET | `ForumsController.Details(int id)` | `Views/Forums/Details.cshtml` |

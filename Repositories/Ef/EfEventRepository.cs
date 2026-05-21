@@ -27,7 +27,52 @@ public class EfEventRepository : IEventRepository
         return _context.Tournaments
             .Include(tournament => tournament.EventVenue)
             .Include(tournament => tournament.Teams)
+            .Include(tournament => tournament.Matches)
+                .ThenInclude(match => match.TeamA)
+            .Include(tournament => tournament.Matches)
+                .ThenInclude(match => match.TeamB)
+            .Include(tournament => tournament.Matches)
+                .ThenInclude(match => match.Maps)
             .Include(tournament => tournament.ForumThreads)
             .FirstOrDefault(tournament => tournament.Id == id);
+    }
+
+    public void Add(Event eventItem)
+    {
+        _context.Tournaments.Add(eventItem);
+        _context.SaveChanges();
+    }
+
+    public void Update(Event eventItem)
+    {
+        var existingEvent = _context.Tournaments
+            .Include(tournament => tournament.Teams)
+            .FirstOrDefault(tournament => tournament.Id == eventItem.Id);
+
+        if (existingEvent is null)
+        {
+            return;
+        }
+
+        _context.Entry(existingEvent).CurrentValues.SetValues(eventItem);
+        existingEvent.Teams.Clear();
+        foreach (var team in eventItem.Teams)
+        {
+            existingEvent.Teams.Add(team);
+        }
+
+        _context.SaveChanges();
+    }
+
+    public void Delete(int id)
+    {
+        var eventItem = _context.Tournaments.FirstOrDefault(tournament => tournament.Id == id);
+        if (eventItem is null)
+        {
+            return;
+        }
+
+        _context.Tournaments.Remove(eventItem);
+        _context.SaveChanges();
     }
 }

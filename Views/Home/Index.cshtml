@@ -12,11 +12,22 @@
             <span style="font-size: 1.5rem; margin-right: 12px; line-height: 1;">👋</span>
             <span class="text-light fw-semibold" style="font-size: 1.1rem;">
                 Logged in as <span class="text-info fw-bold">@Model.LoggedInUser.Username</span>
+                @if (Model.LoggedInUser is AdminUser)
+                {
+                    <span class="badge bg-warning text-dark ms-2">Admin</span>
+                }
+                else
+                {
+                    <span class="badge bg-info text-dark ms-2">Forum user</span>
+                }
             </span>
         </div>
-        <a asp-controller="Forums" asp-action="Create" class="btn cs2-btn-glow px-4 py-2 rounded-pill fw-bold" style="background: linear-gradient(135deg, #7C3AED, #38BDF8); box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);">
-            + Create Forum Post
-        </a>
+        @if (Model.CanCreateForumPost)
+        {
+            <a asp-controller="Forums" asp-action="Create" class="btn cs2-btn-glow px-4 py-2 rounded-pill fw-bold" style="background: linear-gradient(135deg, #7C3AED, #38BDF8); box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);">
+                + Create Forum Post
+            </a>
+        }
     </div>
 }
 

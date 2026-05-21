@@ -1,0 +1,74 @@
+@model cs2_esports.Models.EventCreateModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Create Event";
+}
+
+<div class="cs2-glass-card shadow-lg p-4 p-md-5 border-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4 border-bottom pb-3" style="border-color: rgba(255,255,255,0.08) !important;">
+        <div>
+            <h1 class="h3 text-primary fw-bold mb-1">Create Event</h1>
+            <p class="text-muted mb-0">Add a new tournament and attach the participating teams.</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-info">Back to events</a>
+    </div>
+
+    <form asp-action="Create" method="post" class="row g-3">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+
+        <div class="col-md-6">
+            <label asp-for="Name" class="form-label text-light"></label>
+            <input asp-for="Name" class="form-control cs2-form-control" />
+            <span asp-validation-for="Name" class="text-danger small"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Organizer" class="form-label text-light"></label>
+            <input asp-for="Organizer" class="form-control cs2-form-control" />
+            <span asp-validation-for="Organizer" class="text-danger small"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="Tier" class="form-label text-light"></label>
+            <select asp-for="Tier" class="form-select cs2-input" asp-items="Html.GetEnumSelectList<cs2_esports.Models.EventTier>()"></select>
+            <span asp-validation-for="Tier" class="text-danger small"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="PrizePoolUsd" class="form-label text-light"></label>
+            <input asp-for="PrizePoolUsd" class="form-control cs2-form-control" />
+            <span asp-validation-for="PrizePoolUsd" class="text-danger small"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="EventVenueId" class="form-label text-light"></label>
+            <select asp-for="EventVenueId" class="form-select cs2-input" asp-items="ViewBag.EventVenues"></select>
+            <span asp-validation-for="EventVenueId" class="text-danger small"></span>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <div class="form-check mt-4">
+                <input asp-for="IsLan" class="form-check-input" />
+                <label asp-for="IsLan" class="form-check-label text-light"></label>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label text-light">Start Date</label>
+            @Html.EditorFor(model => model.StartDateUtc)
+            <span asp-validation-for="StartDateUtc" class="text-danger small"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label text-light">End Date</label>
+            @Html.EditorFor(model => model.EndDateUtc)
+            <span asp-validation-for="EndDateUtc" class="text-danger small"></span>
+        </div>
+        <div class="col-12">
+            <partial name="_AutocompleteTeam" model="Model" />
+        </div>
+
+        <div class="col-12 d-flex gap-2 mt-2">
+            <button type="submit" class="btn btn-primary px-4 fw-bold">Create</button>
+            <a asp-action="Index" class="btn btn-outline-secondary px-4">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

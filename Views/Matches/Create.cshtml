@@ -1,0 +1,75 @@
+@model cs2_esports.Models.MatchCreateModel
+@{
+    ViewData["Title"] = "Create Match";
+}
+
+<div class="cs2-glass-card shadow-lg p-4 p-md-5 border-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4 border-bottom pb-3" style="border-color: rgba(255,255,255,0.08) !important;">
+        <div>
+            <h1 class="h3 text-primary fw-bold mb-1">Create Match</h1>
+            <p class="text-muted mb-0">Schedule a new series for an event and assign both teams.</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-info">Back to matches</a>
+    </div>
+
+    <form asp-action="Create" method="post" class="row g-3">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+
+        <div class="col-md-4">
+            <label asp-for="EventId" class="form-label text-light"></label>
+            <select asp-for="EventId" class="form-select cs2-input" asp-items="ViewBag.Events"></select>
+            <span asp-validation-for="EventId" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="TeamAId" class="form-label text-light"></label>
+            <select asp-for="TeamAId" class="form-select cs2-input" asp-items="ViewBag.TeamOptions"></select>
+            <span asp-validation-for="TeamAId" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="TeamBId" class="form-label text-light"></label>
+            <select asp-for="TeamBId" class="form-select cs2-input" asp-items="ViewBag.TeamOptions"></select>
+            <span asp-validation-for="TeamBId" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label text-light">Scheduled At</label>
+            @Html.EditorFor(model => model.ScheduledAtUtc)
+            <span asp-validation-for="ScheduledAtUtc" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="Format" class="form-label text-light"></label>
+            <select asp-for="Format" class="form-select cs2-input" asp-items="Html.GetEnumSelectList<cs2_esports.Models.MatchFormat>()"></select>
+            <span asp-validation-for="Format" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <div class="form-check mt-4">
+                <input asp-for="IsFinished" class="form-check-input" />
+                <label asp-for="IsFinished" class="form-check-label text-light"></label>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="TeamAScore" class="form-label text-light"></label>
+            <input asp-for="TeamAScore" class="form-control cs2-form-control" />
+            <span asp-validation-for="TeamAScore" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="TeamBScore" class="form-label text-light"></label>
+            <input asp-for="TeamBScore" class="form-control cs2-form-control" />
+            <span asp-validation-for="TeamBScore" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label text-light">Finished At</label>
+            @Html.EditorFor(model => model.FinishedAtUtc)
+            <span asp-validation-for="FinishedAtUtc" class="text-danger small"></span>
+        </div>
+
+        <div class="col-12 d-flex gap-2 mt-2">
+            <button type="submit" class="btn btn-primary px-4 fw-bold">Create</button>
+            <a asp-action="Index" class="btn btn-outline-secondary px-4">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

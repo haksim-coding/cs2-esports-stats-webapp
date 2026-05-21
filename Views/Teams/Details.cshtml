@@ -2,6 +2,9 @@
 @{
     ViewData["Title"] = Model.Name + " - Team Overview";
     var teamLogoPath = TeamLogoResolver.GetLogoPath(Model.Name, Model.Tag);
+    var currentUserType = Context.Session.GetString(AuthSessionKeys.UserType);
+    var isAdminUser = string.Equals(currentUserType, AuthSessionKeys.AdminUserType, StringComparison.Ordinal)
+        && Context.Session.GetInt32(AuthSessionKeys.AdminUserId).HasValue;
 }
 
 <!-- Header Section -->
@@ -52,6 +55,16 @@
                                         <span class="ms-2 d-none d-sm-inline">@(Model.IsFavorite ? "Saved" : "Save")</span>
                                     </button>
                                 </form>
+                            }
+                            @if (isAdminUser)
+                            {
+                                <div class="d-flex flex-wrap gap-2">
+                                    <a asp-action="Edit" asp-route-slug="@RouteSlugHelper.ToRouteSegment(Model.Name)" class="btn btn-outline-info px-3 fw-semibold">Edit</a>
+                                    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline" onsubmit="return confirm('Delete this team?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-outline-danger px-3 fw-semibold">Delete</button>
+                                    </form>
+                                </div>
                             }
                         </div>
                         <span class="text-info fs-3">[@Model.Tag]</span>

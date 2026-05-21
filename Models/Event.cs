@@ -25,6 +25,7 @@ public class Event
     public virtual AdminUser? AdminUser { get; set; }
 
     public virtual ICollection<Team> Teams { get; set; } = new List<Team>();
+    public virtual ICollection<Match> Matches { get; set; } = new List<Match>();
     public virtual ICollection<Forum> ForumThreads { get; set; } = new List<Forum>();
 }
 

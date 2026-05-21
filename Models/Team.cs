@@ -20,5 +20,7 @@ public class Team
 
     public virtual ICollection<Player> Players { get; set; } = new List<Player>();
     public virtual ICollection<Event> Tournaments { get; set; } = new List<Event>();
+    public virtual ICollection<Match> HomeMatches { get; set; } = new List<Match>();
+    public virtual ICollection<Match> AwayMatches { get; set; } = new List<Match>();
 }
 

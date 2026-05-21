@@ -1,0 +1,52 @@
+@model cs2_esports.Models.TeamCreateModel
+@{
+    ViewData["Title"] = "Create Team";
+}
+
+<div class="cs2-glass-card shadow-lg p-4 p-md-5 border-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4 border-bottom pb-3" style="border-color: rgba(255,255,255,0.08) !important;">
+        <div>
+            <h1 class="h3 text-primary fw-bold mb-1">Create Team</h1>
+            <p class="text-muted mb-0">Add a new roster to the rankings table.</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-info">Back to teams</a>
+    </div>
+
+    <form asp-action="Create" method="post" class="row g-3">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+
+        <div class="col-md-6">
+            <label asp-for="Name" class="form-label text-light"></label>
+            <input asp-for="Name" class="form-control cs2-form-control" />
+            <span asp-validation-for="Name" class="text-danger small"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="Tag" class="form-label text-light"></label>
+            <input asp-for="Tag" class="form-control cs2-form-control" />
+            <span asp-validation-for="Tag" class="text-danger small"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="CountryCode" class="form-label text-light"></label>
+            <input asp-for="CountryCode" class="form-control cs2-form-control" maxlength="2" />
+            <span asp-validation-for="CountryCode" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="FoundedYear" class="form-label text-light"></label>
+            <input asp-for="FoundedYear" class="form-control cs2-form-control" />
+            <span asp-validation-for="FoundedYear" class="text-danger small"></span>
+        </div>
+        <div class="col-12">
+            <partial name="_AutocompeltePlayer" model="Model" />
+        </div>
+
+        <div class="col-12 d-flex gap-2 mt-2">
+            <button type="submit" class="btn btn-primary px-4 fw-bold">Create</button>
+            <a asp-action="Index" class="btn btn-outline-secondary px-4">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,70 @@
+@model cs2_esports.Models.EventCreateModel
+
+@{
+    var searchUrl = Url.Action("Search", "Teams") ?? "/Team/Search";
+    var maxTeams = 16;
+}
+
+<div class="team-player-picker team-table-picker" data-team-picker data-team-layout="table" data-search-url="@searchUrl" data-max-teams="@maxTeams">
+    <div class="mb-2">
+        <label class="form-label text-light mb-1">Attending teams</label>
+        <p class="text-muted small mb-0">Search teams and add them to the event roster.</p>
+    </div>
+
+    <div class="team-player-picker__shell">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 team-table-picker__table">
+                <thead class="cs2-table-head">
+                    <tr>
+                        <th class="ps-3">Team</th>
+                        <th>Tag</th>
+                        <th class="text-end pe-3">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="team-table-picker__body" data-team-selected>
+            @if (Model.SelectedTeams.Any())
+            {
+                foreach (var team in Model.SelectedTeams)
+                {
+                    <tr class="team-table-picker__row" data-team-card data-team-id="@team.Id" data-team-text="@team.Text">
+                        <td class="ps-3">
+                            <div class="d-flex align-items-center gap-2">
+                                @if (!string.IsNullOrWhiteSpace(team.LogoPath))
+                                {
+                                    <img src="@Url.Content(team.LogoPath)" class="team-logo" alt="@team.Text logo" />
+                                }
+                                else
+                                {
+                                    <span class="team-logo-fallback">@TeamLogoResolver.GetBadgeText(team.Text, string.Empty)</span>
+                                }
+                                <strong class="text-light">@team.Text</strong>
+                            </div>
+                        </td>
+                        <td class="text-muted">@team.Text</td>
+                        <td class="text-end pe-3">
+                            <button type="button" class="btn btn-outline-danger btn-sm" data-team-remove aria-label="Remove @team.Text">Remove</button>
+                            <input type="hidden" name="SelectedTeamIds" value="@team.Id" />
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr data-team-empty>
+                    <td colspan="3" class="text-center text-muted py-4">Add teams to the event.</td>
+                </tr>
+            }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="team-player-search-wrap position-relative mt-3">
+            <input type="text" class="form-control cs2-form-control team-player-search" data-team-search-input placeholder="Type a team name..." autocomplete="off" />
+            <span class="team-player-search-spinner spinner-border spinner-border-sm text-info d-none" data-team-spinner role="status" aria-hidden="true"></span>
+            <div class="dropdown-menu team-player-search-results d-none" data-team-results></div>
+        </div>
+
+        <span asp-validation-for="SelectedTeamIds" class="text-danger small d-block mt-2"></span>
+        <div class="team-player-picker__status small text-muted mt-1" data-team-status aria-live="polite">Start typing to find teams.</div>
+    </div>
+</div>
