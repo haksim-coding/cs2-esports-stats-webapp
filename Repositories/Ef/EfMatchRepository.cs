@@ -52,10 +52,12 @@ public class EfMatchRepository : IMatchRepository
         }
 
         _context.Entry(existingMatch).CurrentValues.SetValues(match);
-        _context.MatchMaps.RemoveRange(existingMatch.Maps);
+        var mapsToPersist = match.Maps.ToList();
+        var mapsToRemove = existingMatch.Maps.ToList();
+        _context.MatchMaps.RemoveRange(mapsToRemove);
         existingMatch.Maps.Clear();
 
-        foreach (var map in match.Maps.OrderBy(item => item.MapSequence))
+        foreach (var map in mapsToPersist.OrderBy(item => item.MapSequence))
         {
             existingMatch.Maps.Add(new MatchMap
             {

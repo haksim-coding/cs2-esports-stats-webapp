@@ -284,5 +284,5 @@ C:\Users\Maksim\source\repos\cs2-esports\obj\Debug\net10.0\refint\cs2-esports.dl
 C:\Users\Maksim\source\repos\cs2-esports\obj\Debug\net10.0\cs2-esports.pdb
 C:\Users\Maksim\source\repos\cs2-esports\obj\Debug\net10.0\cs2-esports.genruntimeconfig.cache
 C:\Users\Maksim\source\repos\cs2-esports\obj\Debug\net10.0\ref\cs2-esports.dll
-C:\Users\Maksim\source\repos\cs2-esports\obj\Debug\net10.0\compressed\m0pk2mzi4y-{0}-uwfsaayyd2-uwfsaayyd2.gz
-C:\Users\Maksim\source\repos\cs2-esports\obj\Debug\net10.0\compressed\sdejox9wer-{0}-pg8xoq76q0-pg8xoq76q0.gz
+C:\Users\Maksim\source\repos\cs2-esports\obj\Debug\net10.0\compressed\m0pk2mzi4y-{0}-7ebi52e00l-7ebi52e00l.gz
+C:\Users\Maksim\source\repos\cs2-esports\obj\Debug\net10.0\compressed\sdejox9wer-{0}-ph267tbeiu-ph267tbeiu.gz

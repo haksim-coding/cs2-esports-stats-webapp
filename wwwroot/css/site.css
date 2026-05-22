@@ -1044,6 +1044,13 @@ label { color: #94a3b8; font-weight: 500; }
     min-width: 0;
 }
 
+.match-versus-layout__name {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    line-height: 1.05;
+}
+
 .match-versus-layout__team--right {
     justify-content: flex-end;
     text-align: right;

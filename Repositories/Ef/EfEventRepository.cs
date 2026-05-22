@@ -55,8 +55,9 @@ public class EfEventRepository : IEventRepository
         }
 
         _context.Entry(existingEvent).CurrentValues.SetValues(eventItem);
+        var selectedTeams = eventItem.Teams.ToList();
         existingEvent.Teams.Clear();
-        foreach (var team in eventItem.Teams)
+        foreach (var team in selectedTeams)
         {
             existingEvent.Teams.Add(team);
         }

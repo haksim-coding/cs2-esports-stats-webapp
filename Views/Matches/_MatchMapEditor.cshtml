@@ -10,9 +10,9 @@
     };
     var teamAScore = Model.TeamAScore;
     var teamBScore = Model.TeamBScore;
-    var visibleRows = Math.Min(Model.Maps.Count == 0 ? maxMaps : Model.Maps.Count, maxMaps);
+    var visibleRows = maxMaps;
     var displayedRows = Model.Maps.Count == 0
-        ? Enumerable.Range(1, maxMaps).Select(sequence => new MatchMapInputModel { MapSequence = sequence }).ToList()
+        ? Enumerable.Range(1, 5).Select(sequence => new MatchMapInputModel { MapSequence = sequence }).ToList()
         : Model.Maps;
 }
 
@@ -22,9 +22,10 @@
             <h2 class="h5 text-info mb-1">Series maps</h2>
             <p class="text-muted mb-0">Enter the result for each map in the series. Blank rows are ignored.</p>
         </div>
-        <div class="text-end">
+        <div class="text-end d-flex flex-column align-items-end gap-2">
             <div class="text-secondary small">Minimum maps needed</div>
             <div class="text-light fw-semibold">@minimumMaps of @maxMaps</div>
+            <button type="button" class="btn btn-outline-info btn-sm" data-match-map-reset>Reset map state</button>
         </div>
     </div>
 

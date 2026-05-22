@@ -45,12 +45,6 @@
             <span asp-validation-for="Format" class="text-danger small"></span>
             <div class="form-text text-secondary">The map editor below expands to match the selected series format.</div>
         </div>
-        <div class="col-md-4 d-flex align-items-end">
-            <div class="form-check mt-4">
-                <input asp-for="IsFinished" class="form-check-input" />
-                <label asp-for="IsFinished" class="form-check-label text-light"></label>
-            </div>
-        </div>
         <div class="col-12">
             <partial name="_MatchMapEditor" model="Model" />
         </div>

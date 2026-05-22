@@ -124,11 +124,11 @@ public class MatchesController : Controller
         }
 
         match.ScheduledAtUtc = model.ScheduledAtUtc;
-        match.IsFinished = model.IsFinished;
         match.Format = model.Format;
         match.TeamAScore = model.TeamAScore;
         match.TeamBScore = model.TeamBScore;
-        match.FinishedAtUtc = model.IsFinished ? model.FinishedAtUtc : null;
+        match.IsFinished = IsCompletedMatch(model);
+        match.FinishedAtUtc = match.IsFinished ? model.FinishedAtUtc : null;
         match.EventId = model.EventId;
         match.TeamAId = model.TeamAId;
         match.TeamBId = model.TeamBId;
@@ -190,7 +190,7 @@ public class MatchesController : Controller
     private void PrepareMapRows(MatchCreateModel model)
     {
         var mapCount = GetMapCount(model.Format);
-        var rows = Enumerable.Range(1, mapCount)
+        var rows = Enumerable.Range(1, 5)
             .Select(sequence => new MatchMapInputModel { MapSequence = sequence })
             .ToList();
 
@@ -231,6 +231,17 @@ public class MatchesController : Controller
         };
     }
 
+    private static int GetRequiredWins(MatchFormat format)
+    {
+        return format switch
+        {
+            MatchFormat.BestOf1 => 1,
+            MatchFormat.BestOf3 => 2,
+            MatchFormat.BestOf5 => 3,
+            _ => 2
+        };
+    }
+
     private static bool IsMapRowFilled(MatchMapInputModel map)
     {
         return map.Map.HasValue || map.TeamAScore.HasValue || map.TeamBScore.HasValue || map.WentToOvertime;
@@ -242,10 +253,26 @@ public class MatchesController : Controller
         model.TeamBScore = model.Maps.Count(map => map.Map.HasValue && map.TeamAScore.HasValue && map.TeamBScore.HasValue && map.TeamBScore > map.TeamAScore);
     }
 
+    private bool IsCompletedMatch(MatchCreateModel model)
+    {
+        UpdateSeriesScores(model);
+
+        var requiredWins = GetRequiredWins(model.Format);
+        var seriesScoreA = model.TeamAScore;
+        var seriesScoreB = model.TeamBScore;
+        var hasWinner = seriesScoreA == requiredWins || seriesScoreB == requiredWins;
+        var hasValidMargin = seriesScoreA != seriesScoreB && seriesScoreA <= requiredWins && seriesScoreB <= requiredWins;
+
+        return model.FinishedAtUtc.HasValue && hasWinner && hasValidMargin;
+    }
+
     private void ValidateMatch(MatchCreateModel model)
     {
         var mapRows = model.Maps.Where(IsMapRowFilled).ToList();
         var minimumMapCount = GetMinimumMapCount(model.Format);
+        var requiredWins = GetRequiredWins(model.Format);
+
+        UpdateSeriesScores(model);
 
         if (model.TeamAId == model.TeamBId)
         {
@@ -260,6 +287,27 @@ public class MatchesController : Controller
         if (mapRows.Count < minimumMapCount)
         {
             ModelState.AddModelError(nameof(model.Maps), $"At least {minimumMapCount} map result(s) are required for {MatchDisplayHelper.GetFormatLabel(model.Format)}.");
+        }
+
+        if (model.FinishedAtUtc.HasValue)
+        {
+            var seriesScoreA = model.TeamAScore;
+            var seriesScoreB = model.TeamBScore;
+
+            if (seriesScoreA == seriesScoreB)
+            {
+                ModelState.AddModelError(nameof(model.Maps), "A finished match must have a winner.");
+            }
+
+            if (seriesScoreA > requiredWins || seriesScoreB > requiredWins)
+            {
+                ModelState.AddModelError(nameof(model.Maps), $"A {MatchDisplayHelper.GetFormatLabel(model.Format)} match cannot end with more than {requiredWins} map wins for either team.");
+            }
+
+            if (seriesScoreA != requiredWins && seriesScoreB != requiredWins)
+            {
+                ModelState.AddModelError(nameof(model.Maps), $"A finished {MatchDisplayHelper.GetFormatLabel(model.Format)} match must end when one team reaches {requiredWins} map wins.");
+            }
         }
 
         var usedMapSequences = new HashSet<int>();
@@ -304,11 +352,11 @@ public class MatchesController : Controller
         return new Match
         {
             ScheduledAtUtc = model.ScheduledAtUtc,
-            IsFinished = model.IsFinished,
+            IsFinished = model.FinishedAtUtc.HasValue,
             Format = model.Format,
             TeamAScore = model.TeamAScore,
             TeamBScore = model.TeamBScore,
-            FinishedAtUtc = model.IsFinished ? model.FinishedAtUtc : null,
+            FinishedAtUtc = model.FinishedAtUtc,
             EventId = model.EventId,
             TeamAId = model.TeamAId,
             TeamBId = model.TeamBId,
@@ -319,7 +367,7 @@ public class MatchesController : Controller
     private static MatchEditModel MapToEditModel(Match match)
     {
         var maxMapCount = GetMapCount(match.Format);
-        var maps = Enumerable.Range(1, maxMapCount)
+        var maps = Enumerable.Range(1, 5)
             .Select(sequence => new MatchMapInputModel { MapSequence = sequence })
             .ToList();
 

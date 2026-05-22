@@ -12,7 +12,7 @@
         && Context.Session.GetInt32(AuthSessionKeys.AdminUserId).HasValue;
 }
 
-<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
         <p class="text-uppercase text-info small fw-bold mb-2">CS2Scope match center</p>
         <h1 class="h2 mb-1 text-primary fw-bold">Match #@Model.Id</h1>
@@ -57,11 +57,11 @@
                             {
                                 <span class="team-logo-fallback">@TeamLogoResolver.GetBadgeText(Model.TeamA.Name, Model.TeamA.Tag)</span>
                             }
-                            <span class="text-truncate">@(Model.TeamA?.Name ?? "TBD")</span>
+                            <span class="match-versus-layout__name text-truncate">@(Model.TeamA?.Name ?? "TBD")</span>
                         </span>
                         <span class="match-versus-layout__vs text-uppercase">VS</span>
                         <span class="match-versus-layout__team match-versus-layout__team--right match-team-name">
-                            <span class="text-truncate">@(Model.TeamB?.Name ?? "TBD")</span>
+                            <span class="match-versus-layout__name text-truncate">@(Model.TeamB?.Name ?? "TBD")</span>
                             @if (!string.IsNullOrWhiteSpace(teamBLogoPath))
                             {
                                 <img src="@Url.Content(teamBLogoPath)" class="team-logo-inline" alt="@Model.TeamB?.Name logo" />

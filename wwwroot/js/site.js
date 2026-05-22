@@ -180,6 +180,7 @@ $(function () {
         const $rows = $editor.find('[data-match-map-row]');
         const $seriesScoreA = $editor.find('[data-match-series-score-a]');
         const $seriesScoreB = $editor.find('[data-match-series-score-b]');
+        const $resetButton = $editor.find('[data-match-map-reset]');
 
         const getFormatValue = () => parseInt($formatSelect.val(), 10) || parseInt($editor.data('matchMaxMaps'), 10) || 3;
 
@@ -223,6 +224,19 @@ $(function () {
             $seriesScoreB.val(teamBScore);
         };
 
+        const resetMapState = () => {
+            $rows.each(function () {
+                const $row = $(this);
+                $row.find('[data-match-map-select]').val('');
+                $row.find('[data-match-map-score-a]').val('');
+                $row.find('[data-match-map-score-b]').val('');
+                $row.find('[data-match-map-ot]').prop('checked', false);
+            });
+
+            syncSeriesScore();
+            $editor.find('input, select').trigger('change');
+        };
+
         $formatSelect.on('change', function () {
             syncRows();
             syncSeriesScore();
@@ -230,6 +244,10 @@ $(function () {
 
         $editor.on('input change', '[data-match-map-select], [data-match-map-score-a], [data-match-map-score-b], [data-match-map-ot]', function () {
             syncSeriesScore();
+        });
+
+        $resetButton.on('click', function () {
+            resetMapState();
         });
 
         syncRows();
