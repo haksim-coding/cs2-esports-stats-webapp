@@ -43,13 +43,30 @@ public class EfMatchRepository : IMatchRepository
 
     public void Update(Match match)
     {
-        var existingMatch = _context.Matches.FirstOrDefault(existing => existing.Id == match.Id);
+        var existingMatch = _context.Matches
+            .Include(existing => existing.Maps)
+            .FirstOrDefault(existing => existing.Id == match.Id);
         if (existingMatch is null)
         {
             return;
         }
 
         _context.Entry(existingMatch).CurrentValues.SetValues(match);
+        _context.MatchMaps.RemoveRange(existingMatch.Maps);
+        existingMatch.Maps.Clear();
+
+        foreach (var map in match.Maps.OrderBy(item => item.MapSequence))
+        {
+            existingMatch.Maps.Add(new MatchMap
+            {
+                MapSequence = map.MapSequence,
+                Map = map.Map,
+                TeamAScore = map.TeamAScore,
+                TeamBScore = map.TeamBScore,
+                WentToOvertime = map.WentToOvertime
+            });
+        }
+
         _context.SaveChanges();
     }
 

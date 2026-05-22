@@ -1,6 +1,9 @@
 @model IReadOnlyList<cs2_esports.Models.Match>
 @{
     ViewData["Title"] = "Matches";
+    var currentUserType = Context.Session.GetString(AuthSessionKeys.UserType);
+    var isAdminUser = string.Equals(currentUserType, AuthSessionKeys.AdminUserType, StringComparison.Ordinal)
+        && Context.Session.GetInt32(AuthSessionKeys.AdminUserId).HasValue;
 
     var upcomingMatches = Model.Where(match => !match.IsFinished)
         .OrderBy(match => match.ScheduledAtUtc)
@@ -17,7 +20,10 @@
         <p class="text-muted mb-0">Track upcoming series and review finished results across the event calendar.</p>
     </div>
     <div class="d-flex gap-2">
-        <a asp-action="Create" class="btn btn-primary">Create Match</a>
+        @if (isAdminUser)
+        {
+            <a asp-action="Create" class="btn btn-primary">Create Match</a>
+        }
         <a asp-controller="Events" asp-action="Index" class="btn btn-outline-info">Browse events</a>
     </div>
 </div>

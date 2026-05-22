@@ -1,0 +1,39 @@
+@model cs2_esports.Models.ForumUserEditProfileInputModel
+@{
+    ViewData["Title"] = "Edit Profile";
+}
+
+<div class="cs2-glass-card shadow-lg p-4 p-md-5 border-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4 border-bottom pb-3" style="border-color: rgba(255,255,255,0.08) !important;">
+        <div>
+            <h1 class="h3 text-primary fw-bold mb-1">Edit Profile</h1>
+            <p class="text-muted mb-0">Update your forum username and bio.</p>
+        </div>
+        <a asp-action="Profile" class="btn btn-outline-info">Back to profile</a>
+    </div>
+
+    <form asp-action="EditProfile" method="post" class="row g-3">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+
+        <div class="col-md-6">
+            <label asp-for="Username" class="form-label text-light"></label>
+            <input asp-for="Username" class="form-control cs2-form-control" />
+            <span asp-validation-for="Username" class="text-danger small"></span>
+        </div>
+        <div class="col-12">
+            <label asp-for="Bio" class="form-label text-light"></label>
+            <textarea asp-for="Bio" class="form-control cs2-form-control" rows="5"></textarea>
+            <span asp-validation-for="Bio" class="text-danger small"></span>
+        </div>
+
+        <div class="col-12 d-flex gap-2 mt-2">
+            <button type="submit" class="btn btn-primary px-4 fw-bold">Save changes</button>
+            <a asp-action="Profile" class="btn btn-outline-secondary px-4">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

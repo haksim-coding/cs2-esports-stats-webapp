@@ -37,4 +37,6 @@ public class MatchCreateModel
     [Range(1, int.MaxValue)]
     [Display(Name = "Team B")]
     public int TeamBId { get; set; }
+
+    public List<MatchMapInputModel> Maps { get; set; } = [];
 }

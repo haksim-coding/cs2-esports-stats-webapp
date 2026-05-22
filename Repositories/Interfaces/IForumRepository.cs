@@ -16,6 +16,8 @@ public interface IForumRepository
     ForumComment? AddComment(ForumCommentInputModel input);
     IReadOnlyList<Team> GetFavoriteTeams(int forumUserId);
     IReadOnlyList<Player> GetFavoritePlayers(int forumUserId);
+    bool UpdateForumUserProfile(int forumUserId, ForumUserEditProfileInputModel input);
+    bool DeleteForumUser(int forumUserId);
     bool ToggleFavoriteTeam(int forumUserId, int teamId);
     bool ToggleFavoritePlayer(int forumUserId, int playerId);
 }

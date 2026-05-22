@@ -1,0 +1,85 @@
+@model cs2_esports.Models.MatchCreateModel
+@{
+    var maxMaps = (int)Model.Format;
+    var minimumMaps = Model.Format switch
+    {
+        MatchFormat.BestOf1 => 1,
+        MatchFormat.BestOf3 => 2,
+        MatchFormat.BestOf5 => 3,
+        _ => 2
+    };
+    var teamAScore = Model.TeamAScore;
+    var teamBScore = Model.TeamBScore;
+    var visibleRows = Math.Min(Model.Maps.Count == 0 ? maxMaps : Model.Maps.Count, maxMaps);
+    var displayedRows = Model.Maps.Count == 0
+        ? Enumerable.Range(1, maxMaps).Select(sequence => new MatchMapInputModel { MapSequence = sequence }).ToList()
+        : Model.Maps;
+}
+
+<div class="match-editor cs2-glass-card border-0 p-4 p-md-4" data-match-editor data-match-min-maps="@minimumMaps" data-match-max-maps="@maxMaps">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4 border-bottom pb-3" style="border-color: rgba(255,255,255,0.08) !important;">
+        <div>
+            <h2 class="h5 text-info mb-1">Series maps</h2>
+            <p class="text-muted mb-0">Enter the result for each map in the series. Blank rows are ignored.</p>
+        </div>
+        <div class="text-end">
+            <div class="text-secondary small">Minimum maps needed</div>
+            <div class="text-light fw-semibold">@minimumMaps of @maxMaps</div>
+        </div>
+    </div>
+
+    <div class="row g-3 align-items-end mb-4">
+        <div class="col-md-3">
+            <label asp-for="TeamAScore" class="form-label text-light"></label>
+            <input asp-for="TeamAScore" class="form-control cs2-form-control match-score-input" readonly data-match-series-score-a />
+            <span asp-validation-for="TeamAScore" class="text-danger small"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="TeamBScore" class="form-label text-light"></label>
+            <input asp-for="TeamBScore" class="form-control cs2-form-control match-score-input" readonly data-match-series-score-b />
+            <span asp-validation-for="TeamBScore" class="text-danger small"></span>
+        </div>
+        <div class="col-md-6">
+            <div class="series-score-hint text-secondary small mt-md-4 pt-md-2">Series score is calculated from the map wins below.</div>
+        </div>
+    </div>
+
+    <div class="match-map-editor__rows">
+        @for (var index = 0; index < 5; index++)
+        {
+            var row = index < displayedRows.Count ? displayedRows[index] : new MatchMapInputModel { MapSequence = index + 1 };
+            var isVisible = index < visibleRows;
+            <div class="match-map-editor__row @(isVisible ? string.Empty : "d-none")" data-match-map-row data-match-map-index="@(index + 1)">
+                <input type="hidden" asp-for="Maps[index].MapSequence" value="@(index + 1)" />
+                <div class="row g-3 align-items-end">
+                    <div class="col-lg-4">
+                        <label class="form-label text-light mb-1">Map @(index + 1)</label>
+                        <select asp-for="Maps[index].Map" class="form-select cs2-input match-map-select" asp-items="Html.GetEnumSelectList<MapPool>()" data-match-map-select>
+                            <option value="">Select map</option>
+                        </select>
+                        <span asp-validation-for="Maps[index].Map" class="text-danger small"></span>
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <label class="form-label text-light mb-1">Team A</label>
+                        <input asp-for="Maps[index].TeamAScore" type="number" min="0" max="99" class="form-control cs2-form-control match-score-input" data-match-map-score-a />
+                        <span asp-validation-for="Maps[index].TeamAScore" class="text-danger small"></span>
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <label class="form-label text-light mb-1">Team B</label>
+                        <input asp-for="Maps[index].TeamBScore" type="number" min="0" max="99" class="form-control cs2-form-control match-score-input" data-match-map-score-b />
+                        <span asp-validation-for="Maps[index].TeamBScore" class="text-danger small"></span>
+                    </div>
+                    <div class="col-8 col-lg-2">
+                        <div class="form-check mt-4">
+                            <input asp-for="Maps[index].WentToOvertime" class="form-check-input" data-match-map-ot />
+                            <label asp-for="Maps[index].WentToOvertime" class="form-check-label text-light"></label>
+                        </div>
+                    </div>
+                    <div class="col-4 col-lg-2 text-end text-lg-start">
+                        <span class="badge bg-dark border border-secondary text-light px-3 py-2">Map @(index + 1)</span>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

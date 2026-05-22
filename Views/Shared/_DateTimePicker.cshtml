@@ -1,0 +1,40 @@
+@model cs2_esports.Models.DatePickerInputModel
+@using System.Globalization
+@{
+    var currentCulture = CultureInfo.CurrentCulture.Name;
+    var isCroatian = currentCulture.StartsWith("hr", StringComparison.OrdinalIgnoreCase);
+    var isDateOnly = string.Equals(Model.Mode, "date", StringComparison.OrdinalIgnoreCase);
+    var displayFormat = isDateOnly
+        ? (isCroatian ? "dd.MM.yyyy" : "MM/dd/yyyy")
+        : (isCroatian ? "dd.MM.yyyy HH:mm" : "MM/dd/yyyy HH:mm");
+    var visibleValue = Model.Value.HasValue
+        ? (isDateOnly
+            ? Model.Value.Value.Date.ToString(displayFormat, CultureInfo.CurrentCulture)
+            : Model.Value.Value.ToLocalTime().ToString(displayFormat, CultureInfo.CurrentCulture))
+        : string.Empty;
+    var isoValue = Model.Value.HasValue
+        ? (isDateOnly
+            ? Model.Value.Value.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : Model.Value.Value.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture))
+        : string.Empty;
+    var requiredMessage = Model.RequiredMessage ?? $"{Model.Name} is required.";
+    var inputId = string.Join("_", Model.Name.Split('.')).Replace("[", "_").Replace("]", string.Empty);
+}
+
+<div class="cs2-flatpickr-field" data-flatpickr-picker data-flatpickr-mode="@(isDateOnly ? "date" : "datetime")" data-flatpickr-culture="@currentCulture">
+    <input type="text"
+           class="form-control cs2-form-control flatpickr-input"
+           value="@visibleValue"
+            placeholder="@displayFormat"
+           autocomplete="off"
+           inputmode="none"
+           data-flatpickr-input />
+    <input type="hidden"
+           name="@Model.Name"
+           id="@inputId"
+           value="@isoValue"
+           autocomplete="off"
+           data-flatpickr-hidden
+           @(Model.IsRequired ? "data-val=\"true\"" : string.Empty)
+           @(Model.IsRequired ? $"data-val-required=\"{requiredMessage}\"" : string.Empty) />
+</div>

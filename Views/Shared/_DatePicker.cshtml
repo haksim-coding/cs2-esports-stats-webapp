@@ -1,22 +1,2 @@
 @model cs2_esports.Models.DatePickerInputModel
-@using System.Globalization
-@{
-    var currentCulture = CultureInfo.CurrentCulture.Name;
-    var isCroatian = currentCulture.StartsWith("hr", StringComparison.OrdinalIgnoreCase);
-    var isDateOnly = string.Equals(Model.Mode, "date", StringComparison.OrdinalIgnoreCase);
-    var displayFormat = isDateOnly
-        ? (isCroatian ? "dd.MM.yyyy" : "MM/dd/yyyy")
-        : (isCroatian ? "dd.MM.yyyy HH:mm" : "MM/dd/yyyy HH:mm");
-    var placeholder = displayFormat;
-    var rawValue = Model.Value.HasValue
-        ? (isDateOnly ? Model.Value.Value.ToLocalTime().ToString(displayFormat, CultureInfo.CurrentCulture) : Model.Value.Value.ToLocalTime().ToString(displayFormat, CultureInfo.CurrentCulture))
-        : string.Empty;
-    var hiddenValue = Model.Value.HasValue
-        ? (isDateOnly ? Model.Value.Value.ToLocalTime().ToString("yyyy-MM-ddT00:00:00.000", CultureInfo.InvariantCulture) : Model.Value.Value.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture))
-        : string.Empty;
-}
-
-<div class="date-picker-control" data-date-picker data-date-culture="@currentCulture" data-date-mode="@(isDateOnly ? "date" : "datetime")">
-    <input type="hidden" name="@Model.Name" value="@hiddenValue" data-date-picker-hidden />
-    <input type="text" class="form-control cs2-form-control" value="@rawValue" placeholder="@placeholder" autocomplete="off" data-date-picker-input />
-</div>
+<partial name="_DateTimePicker" model="Model" />

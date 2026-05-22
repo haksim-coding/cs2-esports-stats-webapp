@@ -1,6 +1,7 @@
 @model cs2_esports.Models.PlayerCreateModel
 @{
     ViewData["Title"] = "Create Player";
+    var dateOfBirthPicker = new cs2_esports.Models.DatePickerInputModel { Name = nameof(Model.DateOfBirth), Value = Model.DateOfBirth, Mode = "date", IsRequired = true, RequiredMessage = "Date of Birth is required." };
 }
 
 <div class="cs2-glass-card shadow-lg p-4 p-md-5 border-0">
@@ -32,8 +33,8 @@
             <span asp-validation-for="CountryCode" class="text-danger small"></span>
         </div>
         <div class="col-md-4">
-            <label class="form-label text-light">Date of Birth</label>
-            @Html.EditorFor(model => model.DateOfBirth)
+            <label asp-for="DateOfBirth" class="form-label text-light"></label>
+            <partial name="_DateTimePicker" model="dateOfBirthPicker" />
             <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
         </div>
         <div class="col-md-4">

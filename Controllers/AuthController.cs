@@ -120,6 +120,68 @@ public class AuthController : Controller
         return View(model);
     }
 
+    [HttpGet]
+    public IActionResult EditProfile()
+    {
+        var currentUser = GetCurrentForumUser();
+        if (currentUser is null)
+        {
+            return RedirectToAction(nameof(Login), new { returnUrl = Url.Action(nameof(EditProfile)) });
+        }
+
+        return View(new ForumUserEditProfileInputModel
+        {
+            Username = currentUser.Username,
+            Bio = currentUser.Bio
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult EditProfile(ForumUserEditProfileInputModel input)
+    {
+        var currentUser = GetCurrentForumUser();
+        if (currentUser is null)
+        {
+            return RedirectToAction(nameof(Login), new { returnUrl = Url.Action(nameof(EditProfile)) });
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(input);
+        }
+
+        if (!_forumRepository.UpdateForumUserProfile(currentUser.Id, input))
+        {
+            ModelState.AddModelError(nameof(input.Username), "That username is already in use.");
+            return View(input);
+        }
+
+        TempData["ProfileMessage"] = "Profile updated.";
+        return RedirectToAction(nameof(Profile));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult DeleteAccount()
+    {
+        var currentUser = GetCurrentForumUser();
+        if (currentUser is null)
+        {
+            return RedirectToAction(nameof(Login));
+        }
+
+        if (!_forumRepository.DeleteForumUser(currentUser.Id))
+        {
+            TempData["ProfileMessage"] = "Your account cannot be deleted while forum posts or comments still exist.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        ClearAuthenticationSession();
+        TempData["LoginMessage"] = "Your account has been deleted.";
+        return RedirectToAction("Index", "Home");
+    }
+
     private ForumUser? GetCurrentForumUser()
     {
         var userType = HttpContext.Session.GetString(AuthSessionKeys.UserType);

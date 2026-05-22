@@ -185,6 +185,51 @@ public class EfForumRepository : IForumRepository
             .ToList();
     }
 
+    public bool UpdateForumUserProfile(int forumUserId, ForumUserEditProfileInputModel input)
+    {
+        var user = _context.ForumUsers.FirstOrDefault(item => item.Id == forumUserId);
+        if (user is null)
+        {
+            return false;
+        }
+
+        var normalizedUsername = input.Username.Trim().ToLowerInvariant();
+        var usernameExists = _context.ForumUsers.Any(item => item.Id != forumUserId && item.Username.ToLower() == normalizedUsername);
+        if (usernameExists)
+        {
+            return false;
+        }
+
+        user.Username = input.Username.Trim();
+        user.Bio = input.Bio.Trim();
+        _context.SaveChanges();
+        return true;
+    }
+
+    public bool DeleteForumUser(int forumUserId)
+    {
+        var user = _context.ForumUsers
+            .Include(item => item.FavoriteTeams)
+            .Include(item => item.FavoritePlayers)
+            .FirstOrDefault(item => item.Id == forumUserId);
+
+        if (user is null)
+        {
+            return false;
+        }
+
+        if (_context.Forums.Any(item => item.AuthorId == forumUserId) || _context.ForumComments.Any(item => item.AuthorId == forumUserId))
+        {
+            return false;
+        }
+
+        user.FavoriteTeams.Clear();
+        user.FavoritePlayers.Clear();
+        _context.ForumUsers.Remove(user);
+        _context.SaveChanges();
+        return true;
+    }
+
     public bool ToggleFavoriteTeam(int forumUserId, int teamId)
     {
         var user = _context.ForumUsers

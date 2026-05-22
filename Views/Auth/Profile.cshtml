@@ -4,6 +4,10 @@
 }
 
 <div class="cs2-glass-card shadow-lg border border-secondary overflow-hidden">
+    @if (TempData["ProfileMessage"] is string profileMessage && !string.IsNullOrWhiteSpace(profileMessage))
+    {
+        <div class="alert alert-info rounded-0 border-0 mb-0">@profileMessage</div>
+    }
     <div class="p-4 p-md-5 border-bottom border-secondary position-relative overflow-hidden">
         <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-4">
             <div class="profile-avatar-shell">
@@ -14,6 +18,13 @@
                 <h1 class="display-6 text-white fw-bold mb-2">@Model.User.DisplayName</h1>
                 <div class="text-secondary mb-3">@Model.User.Username</div>
                 <p class="text-light fs-6 mb-0 profile-bio">@(string.IsNullOrWhiteSpace(Model.User.Bio) ? "No bio added yet." : Model.User.Bio)</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-action="EditProfile" class="btn btn-outline-info">Edit Profile</a>
+                <form asp-action="DeleteAccount" method="post" onsubmit="return confirm('Delete your account? This cannot be undone.');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-danger">Delete Account</button>
+                </form>
             </div>
         </div>
     </div>

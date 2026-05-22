@@ -539,3 +539,49 @@ First of all remove the create players/events button if the admin is not logged 
 @agent Try Again
 ----------------
 
+[2026-05-21 23:54:28.242] [CopilotPrompt] [RequestId: request_010cc635-acb0-4fe0-bd71-d3f65021ceb6]
+@agent Try Again
+----------------
+
+[2026-05-22 00:09:09.498] [CopilotPrompt] [RequestId: request_0239abd5-19c0-4ec2-8998-1ed64729e057]
+Replace the current plain datetime input with a proper reusable JavaScript date-time picker component using flatpickr.
+
+Requirements:
+- ASP.NET Core MVC
+- Create reusable partial view: _DateTimePicker.cshtml
+- Use flatpickr instead of native browser date input
+- Support both date and time selection
+- Dark theme styling matching the current site
+- Automatically detect hr/en browser culture
+- Use 24-hour format
+- Support nullable DateTime fields
+- Validation must still work with asp-validation-for
+- Reuse the component in Events and Matches forms
+- Include calendar popup UI and time picker
+- Use Bootstrap-compatible styling
+- Store values in ISO-compatible format for ASP.NET model binding
+- Add smooth open/close animation
+- Do not use default HTML input type="datetime-local"
+- Consult UI specialist for any ui changes and integrations 
+----------------
+
+[2026-05-22 00:18:17.096] [CopilotPrompt] [RequestId: request_5213028e-93a2-4252-8134-d2837a5b700e]
+i think you messed something up because when i open the create/edit view of any entity the whole lower screen is just some random arrows and days in a row and numbers, fix please and make it actually replace the date/time picker, i still see the old date picker here
+----------------
+
+[2026-05-22 00:25:41.267] [CopilotPrompt] [RequestId: request_a13e5b00-3e7b-42db-9920-29433e9e3e04]
+much better but the coloring is still off a little bit, bunch of white nad unreadable text, tell the ui specialist to fix that with no mistakes
+----------------
+
+[2026-05-22 00:28:45.542] [CopilotPrompt] [RequestId: request_3d5faa98-a504-473f-86a0-6b6ad7ef6476]
+when i hover over the mouse here it glitches out and turns white , fix that
+----------------
+
+[2026-05-22 00:34:53.616] [CopilotPrompt] [RequestId: request_bfadcc4f-cf92-48c5-bdb6-bb65c97b533a]
+great, now can you change the style of this number picker on the side to better match the site and take a look at the second pasted image, i have it set to best of 3 and i have only one option for the score while there could be 2 maps minimum, i need a way to edit the score of multiple maps depending on the format and i need to be able to choose the map for each map, add that to the edit/create view of matches and make it make sense , consult the UI/UX expert for that. Also on the user page add like a edit profile button where the user can edit their bio and username (not password) and a button to delete their account
+----------------
+
+[2026-05-22 00:48:41.830] [CopilotPrompt] [RequestId: request_37167dbd-a18b-4f54-a067-ee8152edfdfa]
+when i open this player profile it shows the todays date and time always but in the database the correct date is filled, make sure to fix it here and everywhere else on the site so it does not happen
+----------------
+

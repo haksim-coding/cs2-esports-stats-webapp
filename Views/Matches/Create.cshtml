@@ -1,6 +1,8 @@
 @model cs2_esports.Models.MatchCreateModel
 @{
     ViewData["Title"] = "Create Match";
+    var scheduledAtPicker = new cs2_esports.Models.DatePickerInputModel { Name = nameof(Model.ScheduledAtUtc), Value = Model.ScheduledAtUtc, Mode = "datetime", IsRequired = true, RequiredMessage = "Scheduled At is required." };
+    var finishedAtPicker = new cs2_esports.Models.DatePickerInputModel { Name = nameof(Model.FinishedAtUtc), Value = Model.FinishedAtUtc, Mode = "datetime" };
 }
 
 <div class="cs2-glass-card shadow-lg p-4 p-md-5 border-0">
@@ -33,13 +35,14 @@
         </div>
         <div class="col-md-4">
             <label class="form-label text-light">Scheduled At</label>
-            @Html.EditorFor(model => model.ScheduledAtUtc)
+            <partial name="_DateTimePicker" model="scheduledAtPicker" />
             <span asp-validation-for="ScheduledAtUtc" class="text-danger small"></span>
         </div>
         <div class="col-md-4">
             <label asp-for="Format" class="form-label text-light"></label>
             <select asp-for="Format" class="form-select cs2-input" asp-items="Html.GetEnumSelectList<cs2_esports.Models.MatchFormat>()"></select>
             <span asp-validation-for="Format" class="text-danger small"></span>
+            <div class="form-text text-secondary">The map editor below expands to match the selected series format.</div>
         </div>
         <div class="col-md-4 d-flex align-items-end">
             <div class="form-check mt-4">
@@ -47,19 +50,12 @@
                 <label asp-for="IsFinished" class="form-check-label text-light"></label>
             </div>
         </div>
-        <div class="col-md-4">
-            <label asp-for="TeamAScore" class="form-label text-light"></label>
-            <input asp-for="TeamAScore" class="form-control cs2-form-control" />
-            <span asp-validation-for="TeamAScore" class="text-danger small"></span>
-        </div>
-        <div class="col-md-4">
-            <label asp-for="TeamBScore" class="form-label text-light"></label>
-            <input asp-for="TeamBScore" class="form-control cs2-form-control" />
-            <span asp-validation-for="TeamBScore" class="text-danger small"></span>
+        <div class="col-12">
+            <partial name="_MatchMapEditor" model="Model" />
         </div>
         <div class="col-md-4">
             <label class="form-label text-light">Finished At</label>
-            @Html.EditorFor(model => model.FinishedAtUtc)
+            <partial name="_DateTimePicker" model="finishedAtPicker" />
             <span asp-validation-for="FinishedAtUtc" class="text-danger small"></span>
         </div>
 

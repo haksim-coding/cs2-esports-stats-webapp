@@ -2,6 +2,14 @@
 // for details on configuring this project to bundle and minify static web assets.
 
 // Write your JavaScript code.
+function getBrowserCulture() {
+    return (navigator.language || document.documentElement.lang || 'en').toLowerCase();
+}
+
+function isCroatianCulture(cultureCode) {
+    return (cultureCode || '').toLowerCase().startsWith('hr');
+}
+
 function formatRosterDate(dateValue, cultureCode, mode) {
     if (!(dateValue instanceof Date) || isNaN(dateValue.getTime())) {
         return '';
@@ -61,6 +69,173 @@ function parseRosterDate(value, cultureCode, mode) {
 }
 
 $(function () {
+    if ($.validator && $.validator.setDefaults) {
+        $.validator.setDefaults({ ignore: [] });
+    }
+
+    $('[data-flatpickr-picker]').each(function () {
+        const $wrapper = $(this);
+        const $visibleInput = $wrapper.find('[data-flatpickr-input]');
+        const $hiddenInput = $wrapper.find('[data-flatpickr-hidden]');
+        const mode = ($wrapper.data('flatpickrMode') || 'datetime').toString();
+        const cultureCode = ($wrapper.data('flatpickrCulture') || getBrowserCulture()).toString();
+        const croatian = isCroatianCulture(cultureCode);
+
+        if (!$visibleInput.length || !$hiddenInput.length || typeof flatpickr === 'undefined') {
+            return;
+        }
+
+        const toHiddenValue = (date) => {
+            if (!(date instanceof Date) || isNaN(date.getTime())) {
+                return '';
+            }
+
+            if (mode === 'date') {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+
+            return date.toISOString();
+        };
+
+        const parseDateOnly = (value) => {
+            if (!value) {
+                return null;
+            }
+
+            const parsed = flatpickr.parseDate(value, 'Y-m-d');
+            return parsed instanceof Date && !isNaN(parsed.getTime()) ? parsed : null;
+        };
+
+        const parseDateTime = (value) => {
+            if (!value) {
+                return null;
+            }
+
+            const parsed = new Date(value);
+            return parsed instanceof Date && !isNaN(parsed.getTime()) ? parsed : null;
+        };
+
+        const dateFormat = mode === 'date'
+            ? (croatian ? 'd.m.Y' : 'm/d/Y')
+            : (croatian ? 'd.m.Y H:i' : 'm/d/Y H:i');
+
+        const initialHiddenValue = $hiddenInput.val();
+        const initialDate = mode === 'date'
+            ? parseDateOnly(initialHiddenValue)
+            : parseDateTime(initialHiddenValue);
+
+        const options = {
+            allowInput: true,
+            clickOpens: true,
+            disableMobile: true,
+            animate: true,
+            time_24hr: true,
+            minuteIncrement: 1,
+            dateFormat: dateFormat,
+            enableTime: mode !== 'date',
+            defaultDate: initialDate || $visibleInput.val() || undefined,
+            locale: croatian && flatpickr.l10ns && flatpickr.l10ns.hr ? flatpickr.l10ns.hr : undefined,
+            onReady: function (selectedDates, dateStr, instance) {
+                instance.calendarContainer?.classList.add('cs2-flatpickr-calendar');
+                instance.input.setAttribute('autocomplete', 'off');
+                if (!instance.input.value && initialDate) {
+                    instance.setDate(initialDate, false);
+                }
+            },
+            onChange: function (selectedDates, dateStr, instance) {
+                const selected = selectedDates && selectedDates.length > 0 ? selectedDates[0] : null;
+                $hiddenInput.val(selected ? toHiddenValue(selected) : '');
+            },
+            onValueUpdate: function (selectedDates, dateStr, instance) {
+                const selected = selectedDates && selectedDates.length > 0 ? selectedDates[0] : null;
+                $hiddenInput.val(selected ? toHiddenValue(selected) : '');
+            }
+        };
+
+        const picker = flatpickr($visibleInput[0], options);
+
+        $visibleInput.on('change blur', function () {
+            const rawValue = $(this).val().trim();
+            if (!rawValue) {
+                $hiddenInput.val('');
+                return;
+            }
+
+            const parsed = picker.parseDate(rawValue, dateFormat);
+            if (!parsed) {
+                return;
+            }
+
+            picker.setDate(parsed, false);
+            $hiddenInput.val(toHiddenValue(parsed));
+        });
+    });
+
+    $('[data-match-editor]').each(function () {
+        const $editor = $(this);
+        const $formatSelect = $editor.closest('form').find('select[name="Format"]');
+        const $rows = $editor.find('[data-match-map-row]');
+        const $seriesScoreA = $editor.find('[data-match-series-score-a]');
+        const $seriesScoreB = $editor.find('[data-match-series-score-b]');
+
+        const getFormatValue = () => parseInt($formatSelect.val(), 10) || parseInt($editor.data('matchMaxMaps'), 10) || 3;
+
+        const syncRows = () => {
+            const maxMaps = getFormatValue();
+            $rows.each(function () {
+                const $row = $(this);
+                const rowIndex = parseInt($row.data('matchMapIndex'), 10);
+                const visible = rowIndex <= maxMaps;
+                $row.toggleClass('d-none', !visible);
+                $row.find('select, input').prop('disabled', !visible);
+            });
+        };
+
+        const syncSeriesScore = () => {
+            let teamAScore = 0;
+            let teamBScore = 0;
+
+            $rows.each(function () {
+                const $row = $(this);
+                if ($row.hasClass('d-none')) {
+                    return;
+                }
+
+                const mapSelected = ($row.find('[data-match-map-select]').val() || '').toString().trim();
+                const scoreA = parseInt($row.find('[data-match-map-score-a]').val(), 10);
+                const scoreB = parseInt($row.find('[data-match-map-score-b]').val(), 10);
+
+                if (!mapSelected || Number.isNaN(scoreA) || Number.isNaN(scoreB)) {
+                    return;
+                }
+
+                if (scoreA > scoreB) {
+                    teamAScore += 1;
+                } else if (scoreB > scoreA) {
+                    teamBScore += 1;
+                }
+            });
+
+            $seriesScoreA.val(teamAScore);
+            $seriesScoreB.val(teamBScore);
+        };
+
+        $formatSelect.on('change', function () {
+            syncRows();
+            syncSeriesScore();
+        });
+
+        $editor.on('input change', '[data-match-map-select], [data-match-map-score-a], [data-match-map-score-b], [data-match-map-ot]', function () {
+            syncSeriesScore();
+        });
+
+        syncRows();
+        syncSeriesScore();
+    });
+
     const minSearchLength = 2;
 
     $('[data-date-picker]').each(function () {

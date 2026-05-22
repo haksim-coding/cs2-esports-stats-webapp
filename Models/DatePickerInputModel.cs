@@ -7,4 +7,8 @@ public class DatePickerInputModel
     public DateTime? Value { get; set; }
 
     public string Mode { get; set; } = "datetime";
+
+    public bool IsRequired { get; set; }
+
+    public string? RequiredMessage { get; set; }
 }

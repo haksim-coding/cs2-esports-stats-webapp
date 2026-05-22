@@ -1,6 +1,8 @@
 @model cs2_esports.Models.EventEditModel
 @{
     ViewData["Title"] = "Edit Event";
+    var startDatePicker = new cs2_esports.Models.DatePickerInputModel { Name = nameof(Model.StartDateUtc), Value = Model.StartDateUtc, Mode = "datetime", IsRequired = true, RequiredMessage = "Start Date is required." };
+    var endDatePicker = new cs2_esports.Models.DatePickerInputModel { Name = nameof(Model.EndDateUtc), Value = Model.EndDateUtc, Mode = "datetime", IsRequired = true, RequiredMessage = "End Date is required." };
 }
 
 <div class="cs2-glass-card shadow-lg p-4 p-md-5 border-0">
@@ -50,12 +52,12 @@
         </div>
         <div class="col-md-6">
             <label class="form-label text-light">Start Date</label>
-            @Html.EditorFor(model => model.StartDateUtc)
+            <partial name="_DateTimePicker" model="startDatePicker" />
             <span asp-validation-for="StartDateUtc" class="text-danger small"></span>
         </div>
         <div class="col-md-6">
             <label class="form-label text-light">End Date</label>
-            @Html.EditorFor(model => model.EndDateUtc)
+            <partial name="_DateTimePicker" model="endDatePicker" />
             <span asp-validation-for="EndDateUtc" class="text-danger small"></span>
         </div>
         <div class="col-12">
