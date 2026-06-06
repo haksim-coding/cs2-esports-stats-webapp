@@ -1,6 +1,7 @@
 using cs2_esports.Helpers;
 using cs2_esports.Models;
 using cs2_esports.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace cs2_esports.Controllers;
@@ -78,9 +79,10 @@ public class TeamsController : Controller
     }
 
     [HttpGet]
+    [Authorize(Roles = EventRoleHelper.SuperAdminOnlyRoles)]
     public IActionResult Create()
     {
-        if (!IsAdminUser())
+        if (!EventRoleHelper.CanManageRosterContent(User))
         {
             return NotFound();
         }
@@ -93,9 +95,10 @@ public class TeamsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = EventRoleHelper.SuperAdminOnlyRoles)]
     public IActionResult Create(TeamCreateModel model)
     {
-        if (!IsAdminUser())
+        if (!EventRoleHelper.CanManageRosterContent(User))
         {
             return NotFound();
         }
@@ -116,9 +119,10 @@ public class TeamsController : Controller
     }
 
     [HttpGet("/team/{slug}/edit")]
+    [Authorize(Roles = EventRoleHelper.SuperAdminOnlyRoles)]
     public IActionResult Edit(string slug)
     {
-        if (!IsAdminUser())
+        if (!EventRoleHelper.CanManageRosterContent(User))
         {
             return NotFound();
         }
@@ -142,9 +146,10 @@ public class TeamsController : Controller
 
     [ValidateAntiForgeryToken]
     [HttpPost("/team/{slug}/edit")]
+    [Authorize(Roles = EventRoleHelper.SuperAdminOnlyRoles)]
     public IActionResult Edit(string slug, TeamEditModel model)
     {
-        if (!IsAdminUser())
+        if (!EventRoleHelper.CanManageRosterContent(User))
         {
             return NotFound();
         }
@@ -173,9 +178,10 @@ public class TeamsController : Controller
     }
 
     [HttpGet]
+    [Authorize(Roles = EventRoleHelper.SuperAdminOnlyRoles)]
     public IActionResult Delete(int id)
     {
-        if (!IsAdminUser())
+        if (!EventRoleHelper.CanManageRosterContent(User))
         {
             return NotFound();
         }
@@ -192,9 +198,10 @@ public class TeamsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [ActionName("Delete")]
+    [Authorize(Roles = EventRoleHelper.SuperAdminOnlyRoles)]
     public IActionResult DeleteConfirmed(int id)
     {
-        if (!IsAdminUser())
+        if (!EventRoleHelper.CanManageRosterContent(User))
         {
             return NotFound();
         }
@@ -234,12 +241,6 @@ public class TeamsController : Controller
     {
         var userId = HttpContext.Session.GetInt32(ForumUserSessionKey);
         return userId.HasValue ? _forumRepository.GetForumUserById(userId.Value) : null;
-    }
-
-    private bool IsAdminUser()
-    {
-        return string.Equals(HttpContext.Session.GetString(AuthSessionKeys.UserType), AuthSessionKeys.AdminUserType, StringComparison.Ordinal)
-            && HttpContext.Session.GetInt32(AuthSessionKeys.AdminUserId).HasValue;
     }
 
     private void ValidateTeamUniqueness(TeamCreateModel model, int? currentTeamId = null)
@@ -344,7 +345,8 @@ public class TeamsController : Controller
             .Select(playerId => new PlayerAutocompleteItemModel
             {
                 Id = playerId,
-                Text = playersById[playerId].Nickname
+                Text = playersById[playerId].Nickname,
+                ImagePath = playersById[playerId].ImagePath ?? string.Empty
             })
             .ToList();
     }
@@ -369,7 +371,8 @@ public class TeamsController : Controller
             .Select(playerId => new PlayerAutocompleteItemModel
             {
                 Id = playerId,
-                Text = playersById[playerId].Nickname
+                Text = playersById[playerId].Nickname,
+                ImagePath = playersById[playerId].ImagePath ?? string.Empty
             })
             .ToList();
     }

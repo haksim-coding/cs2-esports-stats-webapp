@@ -12,7 +12,7 @@
         <a asp-action="DetailsBySlug" asp-route-slug="@Model.RouteSlug" class="btn btn-outline-info">Back to team</a>
     </div>
 
-    <form asp-action="Edit" asp-route-slug="@Model.RouteSlug" method="post" class="row g-3">
+    <form action="/team/@Model.RouteSlug/edit" method="post" class="row g-3">
         @Html.AntiForgeryToken()
         <input asp-for="Id" type="hidden" />
         <input asp-for="RouteSlug" type="hidden" />

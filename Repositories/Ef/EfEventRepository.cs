@@ -18,6 +18,7 @@ public class EfEventRepository : IEventRepository
     {
         return _context.Tournaments
             .Include(tournament => tournament.EventVenue)
+            .Include(tournament => tournament.Teams)
             .OrderBy(tournament => tournament.StartDateUtc)
             .ToList();
     }

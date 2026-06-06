@@ -2,9 +2,7 @@
 @{
     ViewData["Title"] = Model.Name + " - Team Overview";
     var teamLogoPath = TeamLogoResolver.GetLogoPath(Model.Name, Model.Tag);
-    var currentUserType = Context.Session.GetString(AuthSessionKeys.UserType);
-    var isAdminUser = string.Equals(currentUserType, AuthSessionKeys.AdminUserType, StringComparison.Ordinal)
-        && Context.Session.GetInt32(AuthSessionKeys.AdminUserId).HasValue;
+    var canManageRosterContent = EventRoleHelper.CanManageRosterContent(User);
 }
 
 <!-- Header Section -->
@@ -17,9 +15,10 @@
             <div class="team-roster-rail mb-0 pb-1">
                 @foreach (var player in Model.Players.OrderBy(p => p.Role).ThenBy(p => p.Nickname))
                 {
+                    var playerImagePath = string.IsNullOrWhiteSpace(player.ImagePath) ? Url.Content("~/images/default-avatar.svg") : Url.Content(player.ImagePath);
                     <a asp-controller="Players" asp-action="DetailsBySlug" asp-route-slug="@RouteSlugHelper.ToRouteSegment(player.Nickname)" class="team-roster-card" title="Open @player.Nickname profile">
                         <div class="team-roster-avatar">
-                            <img src="~/images/default-avatar.svg" alt="@player.Nickname" />
+                            <img src="@playerImagePath" alt="@player.Nickname" asp-append-version="true" />
                         </div>
                         <div class="team-roster-content">
                             <div class="team-roster-name text-truncate">@player.Nickname</div>
@@ -56,11 +55,11 @@
                                     </button>
                                 </form>
                             }
-                            @if (isAdminUser)
+                            @if (canManageRosterContent)
                             {
                                 <div class="d-flex flex-wrap gap-2">
-                                    <a asp-action="Edit" asp-route-slug="@RouteSlugHelper.ToRouteSegment(Model.Name)" class="btn btn-outline-info px-3 fw-semibold">Edit</a>
-                                    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline" onsubmit="return confirm('Delete this team?');">
+                                    <a href="/team/@RouteSlugHelper.ToRouteSegment(Model.Name)/edit" class="btn btn-outline-info px-3 fw-semibold">Edit</a>
+                                    <form action="/teams/delete/@Model.Id" method="post" class="d-inline" onsubmit="return confirm('Delete this team?');">
                                         @Html.AntiForgeryToken()
                                         <button type="submit" class="btn btn-outline-danger px-3 fw-semibold">Delete</button>
                                     </form>
@@ -124,7 +123,11 @@
                                 </div>
                             </td>
                             <td>
-                                <span class="badge @(tourney.Tier == cs2_esports.Models.EventTier.S ? "event-tier-gold" : tourney.Tier == cs2_esports.Models.EventTier.A ? "event-tier-green" : "event-tier-neutral") fw-bold px-2 py-1">@tourney.Tier</span>
+                                @{
+                                    var isMajor = tourney.Tier == cs2_esports.Models.EventTier.Major;
+                                    var eventTierClass = isMajor ? "event-tier-major" : tourney.Tier == cs2_esports.Models.EventTier.S ? "event-tier-gold" : tourney.Tier == cs2_esports.Models.EventTier.A ? "event-tier-green" : "event-tier-neutral";
+                                }
+                                <span class="badge @eventTierClass fw-bold px-2 py-1">@(isMajor ? "Major" : tourney.Tier)</span>
                             </td>
                             <td class="text-end pe-4 fw-bold text-accent">
                                 @tourney.PrizePoolUsd.ToString("C0")

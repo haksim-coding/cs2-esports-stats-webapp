@@ -683,3 +683,55 @@ System.InvalidOperationException: Collection was modified; enumeration operation
 great job, a few more things, the alligment on the match detail page is still very bad please tell the ui ux specialist to fix that and i would like for you to give the admin a message if the score logic does not work, or a button to reset the map state if for example i want to change from 3-2 to 3-1 you know
 ----------------
 
+[2026-05-22 16:58:09.183] [CopilotPrompt] [RequestId: request_ec3a9b17-c9af-47e6-abad-734be4e7c310]
+again explain how the ajax autocomplete works what endpoints does it target and such
+----------------
+
+[2026-06-03 17:23:11.131] [CopilotPrompt] [RequestId: request_ac9189a4-29cc-4acd-a315-db4678a6607f]
+Did you use the ASP.NET Core Identity for role distribution and such
+----------------
+
+[2026-06-03 17:36:47.940] [CopilotPrompt] [RequestId: request_2779d92f-5771-47cc-80f6-6baba13f414f]
+Alright these are our final tasks, i want you to start with the API first, do the team entity first and make sure to follow the document and make sure everything is made correctly and explain how do i test it
+----------------
+
+[2026-06-03 17:40:45.288] [CopilotPrompt] [RequestId: request_484f3458-cda6-4b50-99d2-21a863c85484]
+yeah we will do identity later, but explain why there are 4 files for teams DTO, is that how its supposed to be?
+----------------
+
+[2026-06-03 18:05:13.815] [CopilotPrompt] [RequestId: request_bb056956-20c9-47cc-8bf4-d2a0b97444a3]
+when i try the put command it returns status 200 but i dont see any new teams
+----------------
+
+[2026-06-03 18:08:25.042] [CopilotPrompt] [RequestId: request_0a7dae7d-637e-4fbe-8303-9309e663ec8a]
+how should the PUT method body look like because i accidentaly deleted the whole team spirit roster
+----------------
+
+[2026-06-03 18:11:27.028] [CopilotPrompt] [RequestId: request_008294b9-d3f9-47c7-8751-95911b30fea3]
+alright it works now, give me the body for a POST request i will fill the player ids but the PUT method doesnt seem to be able to change the prize money for some reason
+----------------
+
+[2026-06-03 18:17:17.058] [CopilotPrompt] [RequestId: request_86ca86f8-f25a-4e03-8e15-4ccf826a1b83]
+alright everything seems to work, now replicate this on to the players,events and matches entities following all the correct guidelines
+----------------
+
+[2026-06-03 18:22:18.123] [CopilotPrompt] [RequestId: request_422bc6ab-3663-4604-a63a-676d2a515584]
+can you create a .md file with all the attributes used in the API methods
+----------------
+
+[2026-06-03 18:31:26.551] [CopilotPrompt] [RequestId: request_764d3f29-99ca-4294-9eed-24d659dccbf5]
+great, lets start with the identity thing now, is it possible for you to move the roles we already have set with the admin profiles and all that to the .net identity system and also add a few more roles, i already have blast_admin and esl_admin users in the database, can you make it that they only have permissions to edit the events with the matching organizor type, so blast admin can only edit blast events so on and also explain the identity thing and what you are doing
+----------------
+
+[2026-06-03 18:52:04.206] [CopilotPrompt] [RequestId: request_e33b1113-d3f1-4614-a742-282f582adac6]
+great but i found a few bugs, so the tournament admins should ONLY be allowed to edit the tournamnets page, remove acces to player and team editing/creating. also the blast tournament admin should only be able to edit blast tournaments, i see you only disabled the esl tournamnt access for the blast guy and vice versa, make sure to check the organizer so he couldnt edit for example PGL tournaments and so on.Also the create button on every list page is for some reason forwarding to the api page, not the create page, fix that. and can you make so if a ESL admin goes to create a tournament it automatically puts ESL as the event organizer and disables the text box to recieve changes. Display the tournament admin role instead of the basic yellow admin role on the front page if it is a tournament admin
+----------------
+
+[2026-06-03 20:21:33.686] [CopilotPrompt] [RequestId: request_fff2af03-4306-4b05-a289-10d9c8560ed0]
+the esl and blast admin can still edit and delete other tournaments, make sure to check the organizer and allow it ONLY if the admin role and organizer match, also the create team/create player and create event buttons route incorecttly, they lead me to /api/[entity], also remove the tournament admin text on the main page if i login as head admin, make it just say admin. make no mistakes
+----------------
+
+[2026-06-03 20:28:37.944] [CopilotPrompt] [RequestId: request_5bd3515d-a43b-498c-b01a-99afa78f0161]
+we have problems with authorization, the create teams/players/events button does not work and it routes to the api endpoint insteadd of the teams/create for example, and the super admin should have permissions to create/edit/delete all entities and the tournament admins should be allowed to edit just their tournaments which works for now, fix all the errors please
+----------------
+

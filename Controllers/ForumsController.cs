@@ -182,7 +182,8 @@ public class ForumsController : Controller
 
     private bool IsAdminLoggedIn()
     {
-        return string.Equals(HttpContext.Session.GetString(AuthSessionKeys.UserType), AuthSessionKeys.AdminUserType, StringComparison.Ordinal)
+        return EventRoleHelper.IsEventAdmin(User)
+               && string.Equals(HttpContext.Session.GetString(AuthSessionKeys.UserType), AuthSessionKeys.AdminUserType, StringComparison.Ordinal)
                && HttpContext.Session.GetInt32(AuthSessionKeys.AdminUserId).HasValue;
     }
 }

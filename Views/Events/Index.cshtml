@@ -1,56 +1,182 @@
-﻿@model IReadOnlyList<cs2_esports.Models.Event>
+@model IReadOnlyList<cs2_esports.Models.Event>
+@using cs2_esports.Helpers
 @{
     ViewData["Title"] = "Events";
-    var currentUserType = Context.Session.GetString(AuthSessionKeys.UserType);
-    var isAdminUser = string.Equals(currentUserType, AuthSessionKeys.AdminUserType, StringComparison.Ordinal)
-        && Context.Session.GetInt32(AuthSessionKeys.AdminUserId).HasValue;
+    var nowUtc = DateTime.UtcNow;
+    var ongoingEvents = Model
+        .Where(tournament => tournament.StartDateUtc <= nowUtc && tournament.EndDateUtc >= nowUtc)
+        .OrderBy(tournament => tournament.EndDateUtc)
+        .ToList();
+    var featuredEvent = ongoingEvents.FirstOrDefault() ?? Model.OrderBy(tournament => tournament.StartDateUtc).FirstOrDefault();
+    var upcomingGroups = Model
+        .Where(tournament => tournament.StartDateUtc > nowUtc)
+        .OrderBy(tournament => tournament.StartDateUtc)
+        .GroupBy(tournament => new DateTime(tournament.StartDateUtc.Year, tournament.StartDateUtc.Month, 1))
+        .ToList();
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h2 text-primary fw-bold mb-0">Events</h1>
-    @if (isAdminUser)
+<div class="events-page">
+<div class="events-page-head d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <h1 class="h2 text-primary fw-bold mb-1">Events</h1>
+        <p class="text-muted mb-0">Browse upcoming CS2 tournaments, venues, and prize pools.</p>
+    </div>
+    @if (User.Identity?.IsAuthenticated == true
+        && (User.IsInRole(EventRoleHelper.SuperAdminRole)
+            || User.IsInRole(EventRoleHelper.BlastAdminRole)
+            || User.IsInRole(EventRoleHelper.EslAdminRole)
+            || User.IsInRole(EventRoleHelper.TournamentAdminRole)))
     {
-        <a asp-action="Create" class="btn btn-primary">Create Event</a>
+        <a href="/events/create" class="btn btn-primary px-4 fw-bold shadow-sm">Create Event</a>
     }
 </div>
 
-<div class="cs2-glass-card shadow-lg p-0 overflow-hidden border-0 events-table">
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="cs2-table-head">
-                <tr>
-                    <th class="ps-4">Event Name</th>
-                    <th>Organizer</th>
-                    <th>Tier</th>
-                    <th>Location</th>
-                    <th>Date</th>
-                </tr>
-            </thead>
-            <tbody>
-            @foreach (var tournament in Model)
-            {
-                var isSTier = tournament.Tier == cs2_esports.Models.EventTier.S;
-                var tierClass = tournament.Tier == cs2_esports.Models.EventTier.S ? "event-tier-gold" : tournament.Tier == cs2_esports.Models.EventTier.A ? "event-tier-green" : "event-tier-neutral";
-                <tr class="clickable-row border-top border-secondary @(isSTier ? "event-s-tier-row" : string.Empty)" onclick="window.location='@Url.Action("DetailsBySlug", "Events", new { slug = RouteSlugHelper.ToRouteSegment(tournament.Name) })'">
-                    <td class="fw-bold text-light ps-4 py-3">
-                        <i class="bi bi-trophy-fill text-accent me-2"></i> @tournament.Name
-                    </td>
-                    <td class="text-secondary"><i class="bi bi-building text-muted me-1"></i> @tournament.Organizer</td>
-                    <td>
-                        <span class="badge @tierClass px-2 py-1 shadow-sm">@tournament.Tier</span>
-                    </td>
-                    <td class="text-light fw-medium">
-                        <i class="bi bi-geo-alt-fill text-muted me-1"></i>
-                        <img src="@CountryFlagHelper.GetFlagImageUrl(tournament.EventVenue?.CountryCode)" alt="@tournament.EventVenue?.CountryCode flag" class="country-flag-img country-flag--inline" loading="lazy" decoding="async" />
-                        @tournament.EventVenue?.City
-                    </td>
-                    <td class="text-secondary small">
-                        <i class="bi bi-calendar-event me-1"></i>
-                        @tournament.StartDateUtc.ToString("MMM dd") - @tournament.EndDateUtc.ToString("MMM dd, yyyy")
-                    </td>
-                </tr>
-            }
-            </tbody>
-        </table>
+<section class="events-hltv-section mb-5">
+    <div class="events-hltv-section__top">
+        <div class="events-hltv-section__heading">
+            <h2>Ongoing events</h2>
+        </div>
     </div>
+
+    <div class="events-featured-strip">
+        @{
+            var featuredEvents = ongoingEvents.Any()
+                ? ongoingEvents
+                : featuredEvent is null ? new List<cs2_esports.Models.Event>() : new List<cs2_esports.Models.Event> { featuredEvent };
+        }
+        @if (featuredEvents.Any())
+        {
+            @foreach (var featuredEventItem in featuredEvents)
+            {
+                var isMajor = featuredEventItem.Tier == cs2_esports.Models.EventTier.Major;
+                var tierClass = isMajor ? "event-tier-major" : featuredEventItem.Tier == cs2_esports.Models.EventTier.S ? "event-tier-gold" : featuredEventItem.Tier == cs2_esports.Models.EventTier.A ? "event-tier-green" : "event-tier-neutral";
+                var bannerPath = string.IsNullOrWhiteSpace(featuredEventItem.BannerImagePath) ? string.Empty : Url.Content(featuredEventItem.BannerImagePath);
+                var eventUrl = Url.Action("DetailsBySlug", "Events", new { slug = RouteSlugHelper.ToRouteSegment(featuredEventItem.Name) });
+                <a class="events-featured-card" href="@eventUrl">
+                    <span class="events-featured-card__mark">
+                        @if (!string.IsNullOrWhiteSpace(bannerPath))
+                        {
+                            <img src="@bannerPath" alt="@featuredEventItem.Name banner" loading="eager" decoding="async" asp-append-version="true" />
+                        }
+                        else
+                        {
+                            <i class="bi bi-trophy-fill"></i>
+                        }
+                    </span>
+                    <span class="events-featured-card__copy">
+                        <span class="events-featured-card__title">@featuredEventItem.Name</span>
+                        <span class="events-featured-card__date">@featuredEventItem.StartDateUtc.ToString("MMM d") - @featuredEventItem.EndDateUtc.ToString("MMM d")</span>
+                    </span>
+                    <span class="badge @tierClass event-tier-badge">@(isMajor ? "Major" : featuredEventItem.Tier)</span>
+                    <span class="events-featured-card__lan">@(featuredEventItem.IsLan ? "LAN" : "Online")</span>
+                </a>
+            }
+        }
+        else
+        {
+            <div class="events-empty-state">No active events right now.</div>
+        }
+    </div>
+</section>
+
+<section class="events-hltv-section">
+    <div class="events-hltv-section__heading events-hltv-section__heading--stacked">
+        <span>Upcoming events</span>
+        <h2>@(upcomingGroups.FirstOrDefault()?.Key.ToString("MMMM yyyy") ?? "Upcoming")</h2>
+    </div>
+
+    @if (!upcomingGroups.Any())
+    {
+        <div class="events-empty-state">No upcoming events have been added yet.</div>
+    }
+    else
+    {
+        @foreach (var monthGroup in upcomingGroups)
+        {
+            var eventsInMonth = monthGroup.ToList();
+            var showcaseEvents = eventsInMonth
+                .Where(tournament => tournament.Tier == cs2_esports.Models.EventTier.Major || tournament.Tier == cs2_esports.Models.EventTier.S)
+                .ToList();
+            var compactEvents = eventsInMonth.Except(showcaseEvents).ToList();
+
+            <div class="events-month-group">
+                <h3 class="events-month-heading">@monthGroup.Key.ToString("MMMM yyyy")</h3>
+
+                @if (showcaseEvents.Any())
+                {
+                    <div class="events-showcase-grid">
+                        @foreach (var tournament in showcaseEvents)
+                        {
+                            var isMajor = tournament.Tier == cs2_esports.Models.EventTier.Major;
+                            var tierClass = isMajor ? "event-tier-major" : tournament.Tier == cs2_esports.Models.EventTier.S ? "event-tier-gold" : tournament.Tier == cs2_esports.Models.EventTier.A ? "event-tier-green" : "event-tier-neutral";
+                            var bannerPath = string.IsNullOrWhiteSpace(tournament.BannerImagePath) ? string.Empty : Url.Content(tournament.BannerImagePath);
+                            var eventUrl = Url.Action("DetailsBySlug", "Events", new { slug = RouteSlugHelper.ToRouteSegment(tournament.Name) });
+                            <a class="event-showcase-card" href="@eventUrl">
+                                <span class="event-showcase-card__banner">
+                                    @if (!string.IsNullOrWhiteSpace(bannerPath))
+                                    {
+                                        <img src="@bannerPath" alt="@tournament.Name banner" loading="lazy" decoding="async" asp-append-version="true" />
+                                    }
+                                    else
+                                    {
+                                        <span class="event-showcase-card__fallback"><i class="bi bi-trophy-fill"></i></span>
+                                    }
+                                </span>
+                                <span class="event-showcase-card__body">
+                                    <span class="event-showcase-card__title">@tournament.Name</span>
+                                    <span class="event-showcase-card__meta">
+                                        <img src="@CountryFlagHelper.GetFlagImageUrl(tournament.EventVenue?.CountryCode)" alt="@tournament.EventVenue?.CountryCode flag" class="country-flag-img country-flag--inline" loading="lazy" decoding="async" />
+                                        @tournament.EventVenue?.City, @tournament.EventVenue?.CountryCode
+                                    </span>
+                                    <span class="event-showcase-card__facts">
+                                        <span class="event-stat"><strong>@tournament.StartDateUtc.ToString("MMM d") - @tournament.EndDateUtc.ToString("MMM d")</strong><small>Date</small></span>
+                                        <span class="event-stat"><strong>@tournament.PrizePoolUsd.ToString("C0")</strong><small>Prize</small></span>
+                                        <span class="event-stat"><strong>@tournament.Teams.Count</strong><small>Teams</small></span>
+                                        <span class="event-stat event-stat--tier"><span class="badge @tierClass event-tier-badge">@(isMajor ? "Major" : tournament.Tier)</span><small>Tier</small></span>
+                                    </span>
+                                </span>
+                            </a>
+                        }
+                    </div>
+                }
+
+                @if (compactEvents.Any())
+                {
+                    <div class="events-compact-list">
+                        @foreach (var tournament in compactEvents)
+                        {
+                            var isMajor = tournament.Tier == cs2_esports.Models.EventTier.Major;
+                            var tierClass = isMajor ? "event-tier-major" : tournament.Tier == cs2_esports.Models.EventTier.S ? "event-tier-gold" : tournament.Tier == cs2_esports.Models.EventTier.A ? "event-tier-green" : "event-tier-neutral";
+                            var eventUrl = Url.Action("DetailsBySlug", "Events", new { slug = RouteSlugHelper.ToRouteSegment(tournament.Name) });
+                            var compactBannerPath = string.IsNullOrWhiteSpace(tournament.BannerImagePath) ? string.Empty : Url.Content(tournament.BannerImagePath);
+                            <a class="event-compact-row" href="@eventUrl">
+                                <span class="event-compact-row__icon">
+                                    @if (!string.IsNullOrWhiteSpace(compactBannerPath))
+                                    {
+                                        <img src="@compactBannerPath" alt="@tournament.Name banner" loading="lazy" decoding="async" asp-append-version="true" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-star-fill"></i>
+                                    }
+                                </span>
+                                <span class="event-compact-row__main">
+                                    <span class="event-compact-row__title">@tournament.Name</span>
+                                    <span class="event-compact-row__meta">
+                                        <img src="@CountryFlagHelper.GetFlagImageUrl(tournament.EventVenue?.CountryCode)" alt="@tournament.EventVenue?.CountryCode flag" class="country-flag-img country-flag--inline" loading="lazy" decoding="async" />
+                                        @tournament.EventVenue?.City (@(tournament.IsLan ? "LAN" : "Online")) | @tournament.StartDateUtc.ToString("MMM d") - @tournament.EndDateUtc.ToString("MMM d")
+                                    </span>
+                                </span>
+                                <span class="event-compact-row__stat"><strong>@tournament.Teams.Count</strong><small>Teams</small></span>
+                                <span class="event-compact-row__stat"><strong>@tournament.PrizePoolUsd.ToString("C0")</strong><small>Prize</small></span>
+                                <span class="event-compact-row__stat"><strong>@(tournament.IsLan ? "LAN" : "Online")</strong><small>Type</small></span>
+                                <span class="event-compact-row__tier"><span class="badge @tierClass event-tier-badge">@(isMajor ? "M" : tournament.Tier)</span></span>
+                            </a>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    }
+</section>
 </div>

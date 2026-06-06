@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace cs2_esports.Models;
@@ -33,6 +34,10 @@ public class EventCreateModel
 
     [Display(Name = "LAN Event")]
     public bool IsLan { get; set; }
+
+    [Display(Name = "Event Banner")]
+    [ValidateNever]
+    public IFormFile? BannerImage { get; set; }
 
     [Range(1, int.MaxValue)]
     [Display(Name = "Venue")]

@@ -4,6 +4,7 @@ using cs2_esports.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using cs2_esports.Helpers;
+using Microsoft.AspNetCore.Identity;
 
 namespace cs2_esports.Controllers;
 
@@ -11,11 +12,15 @@ public class AuthController : Controller
 {
     private readonly IForumRepository _forumRepository;
     private readonly Cs2ScopeDbContext _dbContext;
+    private readonly UserManager<AppUser> _userManager;
+    private readonly SignInManager<AppUser> _signInManager;
 
-    public AuthController(IForumRepository forumRepository, Cs2ScopeDbContext dbContext)
+    public AuthController(IForumRepository forumRepository, Cs2ScopeDbContext dbContext, UserManager<AppUser> userManager, SignInManager<AppUser> signInManager)
     {
         _forumRepository = forumRepository;
         _dbContext = dbContext;
+        _userManager = userManager;
+        _signInManager = signInManager;
     }
 
     [HttpGet]
@@ -27,12 +32,35 @@ public class AuthController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Login(LoginInputModel input, string? returnUrl = null)
+    public async Task<IActionResult> Login(LoginInputModel input, string? returnUrl = null)
     {
         if (!ModelState.IsValid)
         {
             ViewData["ReturnUrl"] = returnUrl;
             return View(input);
+        }
+
+        var identityUser = await _userManager.FindByNameAsync(input.Username)
+            ?? await _userManager.FindByEmailAsync(input.Username);
+
+        if (identityUser is not null && await _userManager.CheckPasswordAsync(identityUser, input.Password))
+        {
+            ClearAuthenticationSession();
+            await _signInManager.SignInAsync(identityUser, isPersistent: false);
+
+            var legacyAdminUserId = identityUser.LegacyAdminUserId
+                ?? _dbContext.AdminUsers
+                    .Where(user => user.Username == identityUser.UserName)
+                    .Select(user => (int?)user.Id)
+                    .FirstOrDefault();
+
+            if (legacyAdminUserId.HasValue)
+            {
+                SetAuthenticatedAdminUser(legacyAdminUserId.Value);
+            }
+
+            TempData["LoginMessage"] = $"Welcome back, {identityUser.DisplayName}.";
+            return LocalRedirect(returnUrl ?? Url.Action("Index", "Home")!);
         }
 
         var forumUser = _forumRepository.GetForumUserByUsernameOrEmail(input.Username);
@@ -57,6 +85,17 @@ public class AuthController : Controller
             return View(input);
         }
 
+        var identityAdminUser = await _userManager.FindByNameAsync(adminUser.Username)
+            ?? await _userManager.FindByEmailAsync(adminUser.Email);
+
+        if (identityAdminUser is null)
+        {
+            ModelState.AddModelError(string.Empty, "This admin account has not been migrated to Identity yet.");
+            ViewData["ReturnUrl"] = returnUrl;
+            return View(input);
+        }
+
+        await _signInManager.SignInAsync(identityAdminUser, isPersistent: false);
         SetAuthenticatedAdminUser(adminUser.Id);
         TempData["LoginMessage"] = $"Welcome back, {adminUser.DisplayName}.";
         return LocalRedirect(returnUrl ?? Url.Action("Index", "Home")!);
@@ -94,8 +133,9 @@ public class AuthController : Controller
     }
 
     [HttpGet]
-    public IActionResult Logout()
+    public async Task<IActionResult> Logout()
     {
+        await _signInManager.SignOutAsync();
         ClearAuthenticationSession();
         TempData["LoginMessage"] = "You have been logged out.";
         return RedirectToAction("Index", "Home");

@@ -2,13 +2,17 @@
 @using System.Globalization
 @{
     ViewData["Title"] = "Create Event";
-    var currentUserType = Context.Session.GetString(AuthSessionKeys.UserType);
-    var isAdminUser = string.Equals(currentUserType, AuthSessionKeys.AdminUserType, StringComparison.Ordinal)
-        && Context.Session.GetInt32(AuthSessionKeys.AdminUserId).HasValue;
     var startDatePicker = new cs2_esports.Models.DatePickerInputModel { Name = nameof(Model.StartDateUtc), Value = Model.StartDateUtc, Mode = "datetime", IsRequired = true, RequiredMessage = "Start Date is required." };
     var endDatePicker = new cs2_esports.Models.DatePickerInputModel { Name = nameof(Model.EndDateUtc), Value = Model.EndDateUtc, Mode = "datetime", IsRequired = true, RequiredMessage = "End Date is required." };
 }
 
+@if (User.Identity?.IsAuthenticated != true)
+{
+    <div class="alert alert-danger">You are not authorized to create events.</div>
+}
+else
+{
+var lockOrganizer = (bool?)ViewBag.LockOrganizer == true;
 <div class="cs2-glass-card shadow-lg p-4 p-md-5 border-0">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4 border-bottom pb-3" style="border-color: rgba(255,255,255,0.08) !important;">
         <div>
@@ -18,7 +22,7 @@
         <a asp-action="Index" class="btn btn-outline-info">Back to events</a>
     </div>
 
-    <form asp-action="Create" method="post" class="row g-3">
+    <form action="/events/create" method="post" enctype="multipart/form-data" class="row g-3">
         @Html.AntiForgeryToken()
         <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
 
@@ -29,7 +33,7 @@
         </div>
         <div class="col-md-6">
             <label asp-for="Organizer" class="form-label text-light"></label>
-            <input asp-for="Organizer" class="form-control cs2-form-control" />
+            <input asp-for="Organizer" class="form-control cs2-form-control" readonly="@(lockOrganizer ? "readonly" : null)" />
             <span asp-validation-for="Organizer" class="text-danger small"></span>
         </div>
         <div class="col-md-3">
@@ -64,6 +68,28 @@
             <span asp-validation-for="EndDateUtc" class="text-danger small"></span>
         </div>
         <div class="col-12">
+            <label class="form-label text-light" for="BannerImage">Event banner</label>
+            <label class="event-banner-dropzone" for="BannerImage">
+                <span class="event-banner-dropzone__icon"><i class="bi bi-image"></i></span>
+                <span class="event-banner-dropzone__copy">
+                    <span class="event-banner-dropzone__title">Upload PNG banner</span>
+                    <span class="event-banner-dropzone__meta" data-banner-file-name>Recommended wide artwork, 16:9 or wider. PNG only.</span>
+                </span>
+                <span class="event-banner-dropzone__action">Choose file</span>
+                <input asp-for="BannerImage" class="event-banner-dropzone__input" type="file" accept="image/png" />
+            </label>
+            <div class="event-banner-selection-preview" data-banner-preview hidden>
+                <div class="event-banner-selection-preview__media">
+                    <img alt="Selected banner preview" data-banner-preview-image />
+                </div>
+                <div class="event-banner-selection-preview__body">
+                    <span class="event-banner-selection-preview__label">Selected banner</span>
+                    <span class="event-banner-selection-preview__name" data-banner-preview-name></span>
+                </div>
+            </div>
+            <span asp-validation-for="BannerImage" class="text-danger small"></span>
+        </div>
+        <div class="col-12">
             <partial name="_AutocompleteTeam" model="Model" />
         </div>
 
@@ -76,4 +102,42 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const input = document.querySelector('.event-banner-dropzone__input');
+            const fileName = document.querySelector('[data-banner-file-name]');
+            const preview = document.querySelector('[data-banner-preview]');
+            const previewImage = document.querySelector('[data-banner-preview-image]');
+            const previewName = document.querySelector('[data-banner-preview-name]');
+            let objectUrl;
+
+            if (!input || !fileName || !preview || !previewImage || !previewName) {
+                return;
+            }
+
+            input.addEventListener('change', () => {
+                const file = input.files && input.files[0];
+
+                if (objectUrl) {
+                    URL.revokeObjectURL(objectUrl);
+                    objectUrl = undefined;
+                }
+
+                if (!file) {
+                    fileName.textContent = 'Recommended wide artwork, 16:9 or wider. PNG only.';
+                    preview.hidden = true;
+                    previewImage.removeAttribute('src');
+                    previewName.textContent = '';
+                    return;
+                }
+
+                objectUrl = URL.createObjectURL(file);
+                fileName.textContent = file.name;
+                previewName.textContent = file.name;
+                previewImage.src = objectUrl;
+                preview.hidden = false;
+            });
+        })();
+    </script>
+}
 }

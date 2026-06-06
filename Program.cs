@@ -1,6 +1,10 @@
 using cs2_esports.Data;
+using cs2_esports.Helpers;
+using cs2_esports.Models;
 using cs2_esports.Repositories.Interfaces;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using cs2_esports.Repositories.Ef;
@@ -14,6 +18,17 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession();
+builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
+{
+    options.SignIn.RequireConfirmedAccount = false;
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequiredLength = 6;
+})
+    .AddEntityFrameworkStores<Cs2ScopeDbContext>()
+    .AddDefaultTokenProviders();
 builder.Services.AddDbContext<Cs2ScopeDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Cs2ScopeDbContext")));
 
@@ -27,7 +42,9 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
+    await IdentitySeeder.SeedAsync(scope.ServiceProvider);
     var dbContext = scope.ServiceProvider.GetRequiredService<Cs2ScopeDbContext>();
+    await EventCalendarSeeder.SeedAsync(dbContext);
     app.Logger.LogInformation(
         "Database seeded with {TeamCount} teams, {EventCount} events, {MatchCount} matches, {ForumCount} forums and {PlayerCount} players.",
         await dbContext.Teams.CountAsync(),
@@ -45,6 +62,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseRouting();
 app.UseRequestLocalization(new RequestLocalizationOptions
 {
@@ -54,9 +72,31 @@ app.UseRequestLocalization(new RequestLocalizationOptions
 });
 app.UseSession();
 
+app.UseAuthentication();
+app.Use(async (context, next) =>
+{
+    var hasAdminSession = string.Equals(context.Session.GetString(AuthSessionKeys.UserType), AuthSessionKeys.AdminUserType, StringComparison.Ordinal) &&
+        context.Session.GetInt32(AuthSessionKeys.AdminUserId).HasValue;
+
+    if (EventRoleHelper.IsEventAdmin(context.User) && !hasAdminSession)
+    {
+        await context.SignOutAsync(IdentityConstants.ApplicationScheme);
+        context.User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity());
+    }
+
+    if (string.Equals(context.Session.GetString(AuthSessionKeys.UserType), AuthSessionKeys.AdminUserType, StringComparison.Ordinal) &&
+        !EventRoleHelper.IsEventAdmin(context.User))
+    {
+        context.Session.Remove(AuthSessionKeys.AdminUserId);
+        context.Session.Remove(AuthSessionKeys.UserType);
+    }
+
+    await next();
+});
 app.UseAuthorization();
 
 app.MapStaticAssets();
+app.MapControllers();
 
 app.MapControllerRoute(
     name: "login",

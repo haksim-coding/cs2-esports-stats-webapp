@@ -13,7 +13,7 @@
         <a asp-action="Index" class="btn btn-outline-info">Back to players</a>
     </div>
 
-    <form asp-action="Create" method="post" class="row g-3">
+    <form action="/players/create" method="post" enctype="multipart/form-data" class="row g-3">
         @Html.AntiForgeryToken()
         <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
 
@@ -58,6 +58,28 @@
             <label asp-for="TotalMapsPlayed" class="form-label text-light"></label>
             <input asp-for="TotalMapsPlayed" class="form-control cs2-form-control" />
             <span asp-validation-for="TotalMapsPlayed" class="text-danger small"></span>
+        </div>
+        <div class="col-12">
+            <label class="form-label text-light" for="PlayerImage">Player image</label>
+            <label class="event-banner-dropzone player-image-dropzone" for="PlayerImage" data-player-image-dropzone>
+                <span class="event-banner-dropzone__icon"><i class="bi bi-image"></i></span>
+                <span class="event-banner-dropzone__copy">
+                    <span class="event-banner-dropzone__title">Drop or upload PNG/WebP player image</span>
+                    <span class="event-banner-dropzone__meta" data-player-image-file-name>Recommended portrait artwork. PNG or WebP.</span>
+                </span>
+                <span class="event-banner-dropzone__action">Choose file</span>
+                <input asp-for="PlayerImage" class="event-banner-dropzone__input player-image-dropzone__input" type="file" accept="image/png,image/webp" />
+            </label>
+            <div class="event-banner-selection-preview player-image-selection-preview" data-player-image-preview hidden>
+                <div class="event-banner-selection-preview__media player-image-selection-preview__media">
+                    <img alt="Selected player image preview" data-player-image-preview-image />
+                </div>
+                <div class="event-banner-selection-preview__body">
+                    <span class="event-banner-selection-preview__label">Selected image</span>
+                    <span class="event-banner-selection-preview__name" data-player-image-preview-name></span>
+                </div>
+            </div>
+            <span asp-validation-for="PlayerImage" class="text-danger small"></span>
         </div>
 
         <div class="col-12 d-flex gap-2 mt-2">

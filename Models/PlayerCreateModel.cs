@@ -35,6 +35,9 @@ public class PlayerCreateModel
     [Display(Name = "Total Maps Played")]
     public int TotalMapsPlayed { get; set; }
 
+    [Display(Name = "Player image")]
+    public IFormFile? PlayerImage { get; set; }
+
     [Display(Name = "Current Team")]
     public int? TeamId { get; set; }
 }

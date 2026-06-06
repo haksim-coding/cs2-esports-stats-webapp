@@ -14,6 +14,10 @@ public class Player
     public PlayerRole Role { get; set; }
     public decimal Rating2 { get; set; }
     public int TotalMapsPlayed { get; set; }
+    public string? ImagePath { get; set; }
+    public string? ImageContentType { get; set; }
+    public long? ImageFileSize { get; set; }
+    public DateTime? ImageCreatedAtUtc { get; set; }
     public DateTime JoinedTeamAtUtc { get; set; }
     [NotMapped]
     public bool IsFavorite { get; set; }

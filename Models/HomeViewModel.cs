@@ -8,6 +8,8 @@ namespace cs2_esports.Models
         public List<Player> TopPlayers { get; set; } = new();
         public List<Team> TopTeams { get; set; } = new();
         public User? LoggedInUser { get; set; }
+        public string? LoggedInUserRoleLabel { get; set; }
+        public string? LoggedInUserRoleBadgeClass { get; set; }
         public bool CanCreateForumPost { get; set; }
     }
 }

@@ -1,16 +1,14 @@
 @model IReadOnlyList<cs2_esports.Models.Player>
+@using cs2_esports.Helpers
 @{
     ViewData["Title"] = "Players";
-    var currentUserType = Context.Session.GetString(AuthSessionKeys.UserType);
-    var isAdminUser = string.Equals(currentUserType, AuthSessionKeys.AdminUserType, StringComparison.Ordinal)
-        && Context.Session.GetInt32(AuthSessionKeys.AdminUserId).HasValue;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h2 text-primary fw-bold mb-0">Active Players</h1>
-    @if (isAdminUser)
+    @if (User.Identity?.IsAuthenticated == true && User.IsInRole(EventRoleHelper.SuperAdminRole))
     {
-        <a asp-action="Create" class="btn btn-primary">Create Player</a>
+        <a href="/players/create" class="btn btn-primary">Create Player</a>
     }
 </div>
 

@@ -33,6 +33,7 @@ namespace cs2_esports.Controllers
         public IActionResult Index()
         {
             var loggedInUser = GetCurrentUser();
+            var loggedInRole = GetLoggedInRole();
             var nowUtc = DateTime.UtcNow;
 
             var upcomingEvents = _eventRepository.GetAll()
@@ -65,6 +66,8 @@ namespace cs2_esports.Controllers
                     .ToList(),
 
                 LoggedInUser = loggedInUser,
+                LoggedInUserRoleLabel = loggedInRole is null ? null : EventRoleHelper.GetRoleLabel(loggedInRole),
+                LoggedInUserRoleBadgeClass = GetLoggedInRoleBadgeClass(loggedInRole),
                 CanCreateForumPost = loggedInUser is ForumUser
             };
 
@@ -93,11 +96,59 @@ namespace cs2_esports.Controllers
 
             if (string.Equals(userType, AuthSessionKeys.AdminUserType, StringComparison.Ordinal))
             {
+                if (!EventRoleHelper.IsEventAdmin(User))
+                {
+                    return null;
+                }
+
                 var userId = HttpContext.Session.GetInt32(AuthSessionKeys.AdminUserId);
                 return userId.HasValue ? _dbContext.AdminUsers.FirstOrDefault(user => user.Id == userId.Value) : null;
             }
 
             return null;
+        }
+
+        private string? GetLoggedInRole()
+        {
+            if (User.Identity?.IsAuthenticated != true)
+            {
+                return null;
+            }
+
+            if (User.IsInRole(EventRoleHelper.SuperAdminRole))
+            {
+                return EventRoleHelper.SuperAdminRole;
+            }
+
+            if (User.IsInRole(EventRoleHelper.BlastAdminRole))
+            {
+                return EventRoleHelper.BlastAdminRole;
+            }
+
+            if (User.IsInRole(EventRoleHelper.EslAdminRole))
+            {
+                return EventRoleHelper.EslAdminRole;
+            }
+
+            if (User.IsInRole(EventRoleHelper.TournamentAdminRole))
+            {
+                return EventRoleHelper.TournamentAdminRole;
+            }
+
+            return null;
+        }
+
+        private string? GetLoggedInRoleBadgeClass(string? roleLabel)
+        {
+            return roleLabel switch
+            {
+                EventRoleHelper.TournamentAdminRole => "admin-role-badge admin-role-badge--tournament",
+                EventRoleHelper.SuperAdminRole => "admin-role-badge admin-role-badge--super",
+                EventRoleHelper.BlastAdminRole => "admin-role-badge admin-role-badge--blast",
+                EventRoleHelper.EslAdminRole => "admin-role-badge admin-role-badge--esl",
+                null => null,
+                _ => "admin-role-badge"
+            };
         }
     }
 }

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("cs2-esports")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fb02e809e971e2e03c95667e76b31be67b63f570")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7772a415e85e1b88b9b074341fab6a66afb7785e")]
 [assembly: System.Reflection.AssemblyProductAttribute("cs2-esports")]
 [assembly: System.Reflection.AssemblyTitleAttribute("cs2-esports")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

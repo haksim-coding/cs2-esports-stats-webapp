@@ -1,4 +1,5 @@
 @model IReadOnlyList<cs2_esports.Models.Forum>
+@using cs2_esports.Helpers
 @{
     ViewData["Title"] = "Forums";
     var currentUserType = Context.Session.GetString(AuthSessionKeys.UserType);
@@ -9,7 +10,7 @@
     <h1 class="h2 text-primary fw-bold mb-0">Forum Threads</h1>
     @if (!isAdminUser)
     {
-        <a asp-action="Create" class="btn btn-primary px-4 fw-bold shadow-sm">Create Thread</a>
+        <a asp-controller="Forums" asp-action="Create" class="btn btn-primary px-4 fw-bold shadow-sm">Create Thread</a>
     }
 </div>
 

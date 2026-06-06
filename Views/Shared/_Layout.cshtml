@@ -7,7 +7,8 @@
             ? ForumRepository.GetForumUserById(forumUserId)
             : null
         : null;
-    var loggedInAdminUser = string.Equals(currentUserType, AuthSessionKeys.AdminUserType, StringComparison.Ordinal)
+    var hasAuthenticatedAdminPrincipal = EventRoleHelper.IsEventAdmin(User);
+    var loggedInAdminUser = hasAuthenticatedAdminPrincipal && string.Equals(currentUserType, AuthSessionKeys.AdminUserType, StringComparison.Ordinal)
         ? Context.Session.GetInt32(AuthSessionKeys.AdminUserId) is int adminUserId
             ? DbContext.AdminUsers.FirstOrDefault(user => user.Id == adminUserId)
             : null

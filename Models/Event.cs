@@ -15,6 +15,10 @@ public class Event
     public DateTime StartDateUtc { get; set; }
     public DateTime EndDateUtc { get; set; }
     public bool IsLan { get; set; }
+    public string? BannerImagePath { get; set; }
+    public string? BannerContentType { get; set; }
+    public long? BannerFileSize { get; set; }
+    public DateTime? BannerCreatedAtUtc { get; set; }
 
     [ForeignKey(nameof(EventVenue))]
     public int EventVenueId { get; set; }

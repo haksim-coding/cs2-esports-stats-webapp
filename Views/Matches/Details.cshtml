@@ -7,9 +7,7 @@
     var teamBLogoPath = Model.TeamB is not null ? TeamLogoResolver.GetLogoPath(Model.TeamB.Name, Model.TeamB.Tag) : string.Empty;
     var eventSlug = Model.Event is not null ? RouteSlugHelper.ToRouteSegment(Model.Event.Name) : string.Empty;
     var statusBadgeClass = isFinished ? "bg-success" : "bg-dark border border-secondary text-light";
-    var currentUserType = Context.Session.GetString(AuthSessionKeys.UserType);
-    var isAdminUser = string.Equals(currentUserType, AuthSessionKeys.AdminUserType, StringComparison.Ordinal)
-        && Context.Session.GetInt32(AuthSessionKeys.AdminUserId).HasValue;
+    var canManageRosterContent = EventRoleHelper.CanManageRosterContent(User);
 }
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
@@ -20,10 +18,10 @@
     </div>
     <div class="d-flex gap-2 flex-wrap">
         <a asp-controller="Matches" asp-action="Index" class="btn btn-outline-info">Back to matches</a>
-        @if (isAdminUser)
+        @if (canManageRosterContent)
         {
-            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-info">Edit</a>
-            <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger">Delete</a>
+            <a href="/matches/edit/@Model.Id" class="btn btn-outline-info">Edit</a>
+            <a href="/matches/delete/@Model.Id" class="btn btn-outline-danger">Delete</a>
         }
     </div>
 </div>

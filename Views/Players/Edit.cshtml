@@ -13,7 +13,7 @@
         <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-info">Back to player</a>
     </div>
 
-    <form asp-action="Edit" method="post" class="row g-3">
+    <form id="playerEditForm" action="/players/edit/@Model.Id" method="post" enctype="multipart/form-data" class="row g-3">
         @Html.AntiForgeryToken()
         <input asp-for="Id" type="hidden" />
         <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
@@ -60,6 +60,62 @@
             <input asp-for="TotalMapsPlayed" class="form-control cs2-form-control" />
             <span asp-validation-for="TotalMapsPlayed" class="text-danger small"></span>
         </div>
+        <div class="col-12">
+            <label class="form-label text-light" for="PlayerImage">Player image</label>
+            <div class="player-image-upload-layout">
+                @if (!string.IsNullOrWhiteSpace(Model.CurrentImagePath))
+                {
+                    <div class="event-banner-editor__preview event-banner-editor__preview--deletable player-image-editor__preview">
+                        <img src="@Url.Content(Model.CurrentImagePath)" alt="@Model.Nickname image" loading="lazy" decoding="async" asp-append-version="true" />
+                        <button class="event-banner-editor__delete-button" type="button" data-delete-player-image-url="@Url.Action("DeleteImage", "Players", new { id = Model.Id })" aria-label="Delete player image">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                }
+                <label class="event-banner-dropzone player-image-dropzone" for="PlayerImage" data-player-image-dropzone>
+                    <span class="event-banner-dropzone__icon"><i class="bi bi-image"></i></span>
+                    <span class="event-banner-dropzone__copy">
+                        <span class="event-banner-dropzone__title">Drop or upload PNG/WebP player image</span>
+                        <span class="event-banner-dropzone__meta" data-player-image-file-name>Recommended portrait artwork. PNG or WebP.</span>
+                    </span>
+                    <span class="event-banner-dropzone__action">Choose file</span>
+                    <input asp-for="PlayerImage" class="event-banner-dropzone__input player-image-dropzone__input" type="file" accept="image/png,image/webp" />
+                </label>
+            </div>
+            <div class="event-banner-selection-preview player-image-selection-preview" data-player-image-preview hidden>
+                <div class="event-banner-selection-preview__media player-image-selection-preview__media">
+                    <img alt="Selected player image preview" data-player-image-preview-image />
+                </div>
+                <div class="event-banner-selection-preview__body">
+                    <span class="event-banner-selection-preview__label">Selected image</span>
+                    <span class="event-banner-selection-preview__name" data-player-image-preview-name></span>
+                </div>
+            </div>
+            <div class="upload-file-search mt-3"
+                 data-upload-file-search
+                 data-search-url="/players/@Model.Id/image/search"
+                 data-file-kind="player image">
+                <div class="upload-file-search__heading">
+                    <div>
+                        <h3 class="upload-file-search__title">Uploaded file</h3>
+                        <p class="upload-file-search__hint">Search the current image by filename, path, or metadata.</p>
+                    </div>
+                    <span class="upload-file-search__status" data-file-search-status aria-live="polite">Loading...</span>
+                </div>
+                <label class="upload-file-search__field">
+                    <span class="visually-hidden">Search uploaded player image</span>
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    <input class="form-control cs2-form-control"
+                           type="search"
+                           placeholder="Search uploaded player image..."
+                           autocomplete="off"
+                           data-file-search-input />
+                    <span class="spinner-border spinner-border-sm upload-file-search__spinner" role="status" aria-hidden="true" data-file-search-spinner hidden></span>
+                </label>
+                <div class="upload-file-search__results" data-file-search-results aria-live="polite"></div>
+            </div>
+            <span asp-validation-for="PlayerImage" class="text-danger small"></span>
+        </div>
 
         <div class="col-12 d-flex gap-2 mt-2">
             <button type="submit" class="btn btn-primary px-4 fw-bold">Save changes</button>
@@ -70,4 +126,127 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const deleteButton = document.querySelector('[data-delete-player-image-url]');
+            const token = document.querySelector('#playerEditForm input[name="__RequestVerificationToken"]')?.value;
+            const fileSearch = document.querySelector('[data-upload-file-search]');
+
+            deleteButton?.addEventListener('click', async () => {
+                if (!token || !confirm('Delete this player image?')) {
+                    return;
+                }
+
+                const response = await fetch(deleteButton.dataset.deletePlayerImageUrl, {
+                    method: 'POST',
+                    headers: {
+                        RequestVerificationToken: token
+                    }
+                });
+
+                if (response.ok) {
+                    window.location.reload();
+                    return;
+                }
+
+                alert('Could not delete the player image. Please try again.');
+            });
+
+            if (fileSearch) {
+                const input = fileSearch.querySelector('[data-file-search-input]');
+                const results = fileSearch.querySelector('[data-file-search-results]');
+                const status = fileSearch.querySelector('[data-file-search-status]');
+                const spinner = fileSearch.querySelector('[data-file-search-spinner]');
+                let request;
+                let debounce;
+
+                const read = (item, ...keys) => keys.map(key => item?.[key]).find(value => value !== undefined && value !== null);
+                const formatSize = value => {
+                    const bytes = Number(value);
+                    if (!Number.isFinite(bytes)) return 'Size unavailable';
+                    if (bytes === 0) return '0 B';
+                    const units = ['B', 'KB', 'MB', 'GB'];
+                    const unit = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+                    return `${(bytes / Math.pow(1024, unit)).toFixed(unit ? 1 : 0)} ${units[unit]}`;
+                };
+                const formatDate = value => {
+                    const date = value ? new Date(value) : null;
+                    return date && !Number.isNaN(date.valueOf())
+                        ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+                        : 'Creation date unavailable';
+                };
+                const showState = (title, copy, icon = 'bi-file-earmark') => {
+                    results.replaceChildren();
+                    const state = document.createElement('div');
+                    state.className = 'upload-file-search__empty';
+                    state.innerHTML = `<i class="bi ${icon}" aria-hidden="true"></i><div><strong></strong><span></span></div>`;
+                    state.querySelector('strong').textContent = title;
+                    state.querySelector('span').textContent = copy;
+                    results.append(state);
+                };
+                const render = payload => {
+                    const source = payload?.items ?? payload?.results ?? payload?.files ?? payload;
+                    const items = (Array.isArray(source) ? source : source ? [source] : []).filter(Boolean);
+                    const query = input.value.trim();
+                    status.textContent = items.length ? `${items.length} file${items.length === 1 ? '' : 's'}` : 'No files';
+
+                    if (!items.length) {
+                        showState(query ? 'No matching file' : 'No image uploaded', query ? 'Try another filename or metadata value.' : 'Upload an image to see its metadata here.', query ? 'bi-search' : 'bi-cloud-arrow-up');
+                        return;
+                    }
+
+                    results.replaceChildren(...items.map(item => {
+                        const path = String(read(item, 'fileName', 'filename', 'name', 'path', 'filePath', 'imagePath') ?? 'Player image');
+                        const contentType = String(read(item, 'contentType', 'mimeType', 'type') ?? 'Content type unavailable');
+                        const size = read(item, 'sizeBytes', 'fileSize', 'size', 'length');
+                        const created = read(item, 'createdAtUtc', 'createdUtc', 'createdAt', 'creationDate', 'uploadedAtUtc');
+                        const card = document.createElement('article');
+                        card.className = 'upload-file-result';
+                        card.innerHTML = `
+                            <span class="upload-file-result__icon"><i class="bi bi-file-earmark-image" aria-hidden="true"></i></span>
+                            <div class="upload-file-result__body">
+                                <strong class="upload-file-result__name"></strong>
+                                <div class="upload-file-result__meta">
+                                    <span><i class="bi bi-braces"></i></span>
+                                    <span><i class="bi bi-hdd"></i></span>
+                                    <span><i class="bi bi-calendar3"></i></span>
+                                </div>
+                            </div>`;
+                        card.querySelector('.upload-file-result__name').textContent = path;
+                        const meta = card.querySelectorAll('.upload-file-result__meta span');
+                        meta[0].append(document.createTextNode(contentType));
+                        meta[1].append(document.createTextNode(formatSize(size)));
+                        meta[2].append(document.createTextNode(formatDate(created)));
+                        return card;
+                    }));
+                };
+                const search = async () => {
+                    request?.abort();
+                    const currentRequest = new AbortController();
+                    request = currentRequest;
+                    spinner.hidden = false;
+                    status.textContent = 'Searching...';
+                    try {
+                        const url = `${fileSearch.dataset.searchUrl}?query=${encodeURIComponent(input.value.trim())}`;
+                        const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: currentRequest.signal });
+                        if (!response.ok) throw new Error();
+                        render(await response.json());
+                    } catch (error) {
+                        if (error.name !== 'AbortError') {
+                            status.textContent = 'Unavailable';
+                            showState('Could not load file metadata', 'Please try the search again.', 'bi-exclamation-circle');
+                        }
+                    } finally {
+                        if (request === currentRequest) spinner.hidden = true;
+                    }
+                };
+
+                input.addEventListener('input', () => {
+                    window.clearTimeout(debounce);
+                    debounce = window.setTimeout(search, 250);
+                });
+                search();
+            }
+        })();
+    </script>
 }

@@ -1,11 +1,26 @@
 @model cs2_esports.Models.Event
 @{
     ViewData["Title"] = "Delete Event";
+    var bannerPath = string.IsNullOrWhiteSpace(Model.BannerImagePath) ? string.Empty : Url.Content(Model.BannerImagePath);
 }
 
 <div class="cs2-glass-card shadow-lg p-4 p-md-5 border-0">
-    <h1 class="h3 text-primary fw-bold mb-3">Delete Event</h1>
-    <p class="text-muted mb-4">Are you sure you want to delete @Model.Name?</p>
+    <div class="event-delete-summary mb-4">
+        <div class="event-delete-summary__banner">
+            @if (!string.IsNullOrWhiteSpace(bannerPath))
+            {
+                <img src="@bannerPath" alt="@Model.Name banner" loading="lazy" decoding="async" asp-append-version="true" />
+            }
+            else
+            {
+                <span><i class="bi bi-trophy-fill"></i></span>
+            }
+        </div>
+        <div>
+            <h1 class="h3 text-primary fw-bold mb-2">Delete Event</h1>
+            <p class="text-muted mb-0">Are you sure you want to delete <span class="text-light fw-semibold">@Model.Name</span>?</p>
+        </div>
+    </div>
 
     <dl class="row mb-4">
         <dt class="col-sm-3 text-light">Organizer</dt>
@@ -16,7 +31,7 @@
         <dd class="col-sm-9 text-muted">@(Model.Teams?.Count ?? 0)</dd>
     </dl>
 
-    <form asp-action="Delete" method="post" class="d-flex gap-2">
+    <form action="/events/delete/@Model.Id" method="post" class="d-flex gap-2">
         @Html.AntiForgeryToken()
         <button type="submit" class="btn btn-danger px-4 fw-bold">Delete</button>
         <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary px-4">Cancel</a>

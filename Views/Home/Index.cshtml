@@ -12,9 +12,9 @@
             <span style="font-size: 1.5rem; margin-right: 12px; line-height: 1;">👋</span>
             <span class="text-light fw-semibold" style="font-size: 1.1rem;">
                 Logged in as <span class="text-info fw-bold">@Model.LoggedInUser.Username</span>
-                @if (Model.LoggedInUser is AdminUser)
+                @if (!string.IsNullOrWhiteSpace(Model.LoggedInUserRoleLabel))
                 {
-                    <span class="badge bg-warning text-dark ms-2">Admin</span>
+                    <span class="badge ms-2 @(Model.LoggedInUserRoleBadgeClass ?? "admin-role-badge")">@Model.LoggedInUserRoleLabel</span>
                 }
                 else
                 {
@@ -57,17 +57,19 @@
                 @foreach (var ev in Model.UpcomingEvents)
                 {
                     var tierBadgeClass = ev.Tier switch {
-                        cs2_esports.Models.EventTier.S => "bg-warning text-dark",
+                        cs2_esports.Models.EventTier.Major => "event-tier-major",
                         cs2_esports.Models.EventTier.A => "bg-success text-white",
                         cs2_esports.Models.EventTier.B => "bg-primary text-white",
                         cs2_esports.Models.EventTier.C => "bg-secondary text-white",
-                        _ => "bg-info text-dark"
+                        _ => "event-tier-neutral"
                     };
+                    var isMajor = ev.Tier == cs2_esports.Models.EventTier.Major;
+                    var tierLabel = isMajor ? "Major" : $"{ev.Tier} Tier";
 
                     <a href="@Url.Action("DetailsBySlug", "Events", new { slug = RouteSlugHelper.ToRouteSegment(ev.Name) })" class="text-decoration-none d-block p-3 rounded-3 event-card-link" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.1); transition: all 0.2s ease;">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <h5 class="mb-0 text-light fw-bold text-truncate me-2" style="font-size: 1.1rem; max-width: 180px;">@ev.Name</h5>
-                            <span class="badge @tierBadgeClass fw-bold text-nowrap">@ev.Tier Tier</span>
+                            <span class="badge @tierBadgeClass fw-bold text-nowrap">@tierLabel</span>
                         </div>
                         <p class="text-muted small mb-1">
                             @ev.StartDateUtc.ToString("MMM dd") - @ev.EndDateUtc.ToString("MMM dd, yyyy")

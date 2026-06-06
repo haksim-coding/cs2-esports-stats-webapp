@@ -73,6 +73,142 @@ $(function () {
         $.validator.setDefaults({ ignore: [] });
     }
 
+    $('[data-player-image-dropzone]').each(function () {
+        const dropzone = this;
+        const uploadRoot = dropzone.closest('form') || document;
+        const input = dropzone.querySelector('.player-image-dropzone__input');
+        const fileName = dropzone.querySelector('[data-player-image-file-name]');
+        const preview = uploadRoot.querySelector('[data-player-image-preview]');
+        const previewImage = uploadRoot.querySelector('[data-player-image-preview-image]');
+        const previewName = uploadRoot.querySelector('[data-player-image-preview-name]');
+        const defaultFileNameText = fileName?.textContent || 'Recommended portrait artwork. PNG or WebP.';
+        let objectUrl;
+
+        if (!input || !fileName || !preview || !previewImage || !previewName) {
+            return;
+        }
+
+        const isAcceptedPlayerImage = file => {
+            const fileType = (file.type || '').toLowerCase();
+            const fileNameValue = (file.name || '').toLowerCase();
+
+            return fileType === 'image/png'
+                || fileType === 'image/webp'
+                || fileNameValue.endsWith('.png')
+                || fileNameValue.endsWith('.webp');
+        };
+
+        const getDroppedFile = event => {
+            const itemFile = Array.from(event.dataTransfer?.items || [])
+                .find(item => item.kind === 'file')
+                ?.getAsFile();
+
+            return itemFile || event.dataTransfer?.files?.[0];
+        };
+
+        const assignFileToInput = file => {
+            if (!file || !isAcceptedPlayerImage(file)) {
+                return;
+            }
+
+            if (typeof DataTransfer !== 'undefined') {
+                const transfer = new DataTransfer();
+                transfer.items.add(file);
+                input.files = transfer.files;
+            } else {
+                fileName.textContent = 'Use Choose file for this browser.';
+                return;
+            }
+
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+
+        const stopFileDragDefaults = event => {
+            if (!Array.from(event.dataTransfer?.types || []).includes('Files')) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+        };
+
+        ['dragenter', 'dragover', 'drop'].forEach(eventName => {
+            document.addEventListener(eventName, stopFileDragDefaults);
+        });
+
+        input.addEventListener('change', () => {
+            const file = input.files && input.files[0];
+
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+                objectUrl = undefined;
+            }
+
+            if (!file) {
+                fileName.textContent = defaultFileNameText;
+                preview.hidden = true;
+                previewImage.removeAttribute('src');
+                previewName.textContent = '';
+                return;
+            }
+
+            objectUrl = URL.createObjectURL(file);
+            fileName.textContent = file.name;
+            previewImage.src = objectUrl;
+            previewName.textContent = file.name;
+            preview.hidden = false;
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, event => {
+                event.preventDefault();
+                event.stopPropagation();
+                dropzone.classList.add('event-banner-dropzone--dragover');
+
+                if (event.dataTransfer) {
+                    event.dataTransfer.dropEffect = 'copy';
+                }
+            }, true);
+        });
+
+        dropzone.addEventListener('dragleave', event => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (!dropzone.contains(event.relatedTarget)) {
+                dropzone.classList.remove('event-banner-dropzone--dragover');
+            }
+        }, true);
+
+        dropzone.addEventListener('drop', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            dropzone.classList.remove('event-banner-dropzone--dragover');
+
+            const file = getDroppedFile(event);
+            if (!file) {
+                return;
+            }
+
+            if (!isAcceptedPlayerImage(file)) {
+                fileName.textContent = 'Choose a PNG or WebP player image.';
+                return;
+            }
+
+            assignFileToInput(file);
+        }, true);
+
+        window.addEventListener('beforeunload', () => {
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+            }
+
+            ['dragenter', 'dragover', 'drop'].forEach(eventName => {
+                document.removeEventListener(eventName, stopFileDragDefaults);
+            });
+        });
+    });
+
     $('[data-flatpickr-picker]').each(function () {
         const $wrapper = $(this);
         const $visibleInput = $wrapper.find('[data-flatpickr-input]');
@@ -391,7 +527,9 @@ $(function () {
             $spinner.addClass('d-none');
         };
 
-        const addPlayer = (playerId, playerText, event) => {
+        const getPlayerImagePath = imagePath => imagePath || '/images/default-avatar.svg';
+
+        const addPlayer = (playerId, playerText, playerImagePath, event) => {
             const selectedIds = getSelectedIds();
             if (selectedIds.includes(playerId)) {
                 $status.text(`${playerText} is already selected.`);
@@ -403,11 +541,12 @@ $(function () {
                 return;
             }
 
+            const imageSrc = getPlayerImagePath(playerImagePath);
             const chip = `
-                <div class="team-player-roster-card team-player-roster-card--enter" data-player-card data-player-chip data-player-id="${playerId}" data-player-text="${playerText}">
+                <div class="team-player-roster-card team-player-roster-card--enter" data-player-card data-player-chip data-player-id="${playerId}" data-player-text="${playerText}" data-player-image-path="${imageSrc}">
                     <button type="button" class="team-player-roster-card__remove" data-player-remove aria-label="Remove ${playerText}">×</button>
                     <div class="team-player-roster-card__avatar">
-                        <img src="/images/default-avatar.svg" alt="${playerText}" />
+                        <img src="${imageSrc}" alt="${playerText}" />
                     </div>
                     <div class="team-player-roster-card__body">
                         <div class="team-player-roster-card__name text-truncate">${playerText}</div>
@@ -433,9 +572,13 @@ $(function () {
             const selectedIds = getSelectedIds();
             const markup = items.map(item => {
                 const isSelected = selectedIds.includes(item.id);
+                const imageSrc = getPlayerImagePath(item.imagePath);
                 return `
-                    <button type="button" class="dropdown-item team-player-search__item ${isSelected ? 'disabled' : ''}" data-player-result data-player-id="${item.id}" data-player-text="${item.text}" ${isSelected ? 'disabled' : ''}>
-                        <span class="team-player-search__nickname">${item.text}</span>
+                    <button type="button" class="dropdown-item team-player-search__item ${isSelected ? 'disabled' : ''}" data-player-result data-player-id="${item.id}" data-player-text="${item.text}" data-player-image-path="${imageSrc}" ${isSelected ? 'disabled' : ''}>
+                        <span class="d-inline-flex align-items-center gap-2">
+                            <span class="team-player-search__avatar"><img src="${imageSrc}" alt="${item.text}" /></span>
+                            <span class="team-player-search__nickname">${item.text}</span>
+                        </span>
                         ${isSelected ? '<span class="small text-muted ms-2">Selected</span>' : ''}
                     </button>`;
             }).join('');
@@ -512,7 +655,8 @@ $(function () {
         $picker.on('click', '[data-player-result]', function (event) {
             const playerId = parseInt($(this).data('playerId'), 10);
             const playerText = $(this).data('playerText');
-            addPlayer(playerId, playerText, event);
+            const playerImagePath = $(this).data('playerImagePath');
+            addPlayer(playerId, playerText, playerImagePath, event);
         });
 
         $(document).on('click', function (event) {

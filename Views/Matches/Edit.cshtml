@@ -14,7 +14,7 @@
         <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-info">Back to match</a>
     </div>
 
-    <form asp-action="Edit" method="post" class="row g-3">
+    <form action="/matches/edit/@Model.Id" method="post" class="row g-3">
         @Html.AntiForgeryToken()
         <input asp-for="Id" type="hidden" />
         <div asp-validation-summary="ModelOnly" class="text-danger small"></div>

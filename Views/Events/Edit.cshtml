@@ -1,8 +1,10 @@
 @model cs2_esports.Models.EventEditModel
+@using cs2_esports.Helpers
 @{
     ViewData["Title"] = "Edit Event";
     var startDatePicker = new cs2_esports.Models.DatePickerInputModel { Name = nameof(Model.StartDateUtc), Value = Model.StartDateUtc, Mode = "datetime", IsRequired = true, RequiredMessage = "Start Date is required." };
     var endDatePicker = new cs2_esports.Models.DatePickerInputModel { Name = nameof(Model.EndDateUtc), Value = Model.EndDateUtc, Mode = "datetime", IsRequired = true, RequiredMessage = "End Date is required." };
+    var lockOrganizer = User.IsInRole(EventRoleHelper.BlastAdminRole) || User.IsInRole(EventRoleHelper.EslAdminRole);
 }
 
 <div class="cs2-glass-card shadow-lg p-4 p-md-5 border-0">
@@ -14,7 +16,7 @@
         <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-info">Back to event</a>
     </div>
 
-    <form asp-action="Edit" method="post" class="row g-3">
+    <form id="eventEditForm" action="/events/edit/@Model.Id" method="post" enctype="multipart/form-data" class="row g-3">
         @Html.AntiForgeryToken()
         <input asp-for="Id" type="hidden" />
         <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
@@ -26,7 +28,7 @@
         </div>
         <div class="col-md-6">
             <label asp-for="Organizer" class="form-label text-light"></label>
-            <input asp-for="Organizer" class="form-control cs2-form-control" />
+            <input asp-for="Organizer" class="form-control cs2-form-control" readonly="@(lockOrganizer ? "readonly" : null)" />
             <span asp-validation-for="Organizer" class="text-danger small"></span>
         </div>
         <div class="col-md-3">
@@ -63,14 +65,238 @@
         <div class="col-12">
             <partial name="_AutocompleteTeam" model="Model" />
         </div>
-
-        <div class="col-12 d-flex gap-2 mt-2">
-            <button type="submit" class="btn btn-primary px-4 fw-bold">Save changes</button>
-            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary px-4">Cancel</a>
-        </div>
     </form>
+
+    <section class="event-banner-async-panel mt-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+            <div>
+                <h2 class="h5 text-light fw-bold mb-1">Event banner</h2>
+                <p class="text-muted mb-0">Upload a PNG banner after the event exists. The page refreshes after upload so you can inspect the saved image.</p>
+            </div>
+        </div>
+        <div class="event-banner-editor">
+            @if (!string.IsNullOrWhiteSpace(Model.CurrentBannerImagePath))
+            {
+                <div class="event-banner-editor__preview event-banner-editor__preview--deletable">
+                    <img src="@Url.Content(Model.CurrentBannerImagePath)" alt="@Model.Name banner" loading="lazy" decoding="async" asp-append-version="true" />
+                    <button class="event-banner-editor__delete-button" type="button" data-delete-banner-url="@Url.Action("DeleteBanner", "Events", new { id = Model.Id })" aria-label="Delete event banner">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            }
+            <form id="eventBannerDropzone"
+                  class="event-banner-dropzone event-banner-dropzone--async dropzone"
+                  action="@Url.Action("UploadBanner", "Events", new { id = Model.Id })"
+                  method="post"
+                  enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="dz-message event-banner-dropzone__message">
+                    <span class="event-banner-dropzone__icon"><i class="bi bi-cloud-arrow-up"></i></span>
+                    <span class="event-banner-dropzone__copy">
+                        <span class="event-banner-dropzone__title">Drop PNG banner here</span>
+                        <span class="event-banner-dropzone__meta">or click to upload. PNG only, max 4 MB.</span>
+                    </span>
+                    <span class="event-banner-dropzone__action">Choose file</span>
+                </div>
+            </form>
+        </div>
+        <div class="upload-file-search mt-3"
+             data-upload-file-search
+             data-search-url="/events/@Model.Id/banner/search"
+             data-file-kind="event banner">
+            <div class="upload-file-search__heading">
+                <div>
+                    <h3 class="upload-file-search__title">Uploaded file</h3>
+                    <p class="upload-file-search__hint">Search the current banner by filename, path, or metadata.</p>
+                </div>
+                <span class="upload-file-search__status" data-file-search-status aria-live="polite">Loading...</span>
+            </div>
+            <label class="upload-file-search__field">
+                <span class="visually-hidden">Search uploaded event banner</span>
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input class="form-control cs2-form-control"
+                       type="search"
+                       placeholder="Search uploaded banner..."
+                       autocomplete="off"
+                       data-file-search-input />
+                <span class="spinner-border spinner-border-sm upload-file-search__spinner" role="status" aria-hidden="true" data-file-search-spinner hidden></span>
+            </label>
+            <div class="upload-file-search__results" data-file-search-results aria-live="polite"></div>
+        </div>
+    </section>
+
+    <div class="d-flex gap-2 mt-4">
+        <button type="submit" form="eventEditForm" class="btn btn-primary px-4 fw-bold">Save changes</button>
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary px-4">Cancel</a>
+    </div>
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/dropzone.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/dropzone.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        (() => {
+            const dropzoneElement = document.getElementById('eventBannerDropzone');
+            const deleteButton = document.querySelector('[data-delete-banner-url]');
+            const token = dropzoneElement?.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            const fileSearch = document.querySelector('[data-upload-file-search]');
+
+            if (window.Dropzone && dropzoneElement && token) {
+                Dropzone.autoDiscover = false;
+
+                new Dropzone(dropzoneElement, {
+                    paramName: 'file',
+                    maxFiles: 1,
+                    maxFilesize: 4,
+                    acceptedFiles: 'image/png,.png',
+                    addRemoveLinks: true,
+                    headers: {
+                        RequestVerificationToken: token
+                    },
+                    accept: (file, done) => {
+                        const fileName = file.name || '';
+                        const isPngExtension = fileName.toLowerCase().endsWith('.png');
+                        const isPngMime = !file.type || file.type === 'image/png';
+
+                        done(isPngExtension && isPngMime ? null : 'Only PNG banner images are allowed.');
+                    },
+                    init: function () {
+                        this.on('success', () => window.location.reload());
+                        this.on('maxfilesexceeded', file => this.removeFile(file));
+                        this.on('error', (file, response) => {
+                            const message = typeof response === 'string'
+                                ? response
+                                : response?.message || 'Upload failed. Please choose a valid PNG banner.';
+                            const errorNode = file.previewElement?.querySelector('[data-dz-errormessage]');
+                            if (errorNode) {
+                                errorNode.textContent = message;
+                            }
+                            window.setTimeout(() => {
+                                if (file.status === Dropzone.ERROR) {
+                                    this.removeFile(file);
+                                }
+                            }, 2400);
+                        });
+                    }
+                });
+            }
+
+            deleteButton?.addEventListener('click', async () => {
+                if (!token || !confirm('Delete this event banner?')) {
+                    return;
+                }
+
+                const response = await fetch(deleteButton.dataset.deleteBannerUrl, {
+                    method: 'POST',
+                    headers: {
+                        RequestVerificationToken: token
+                    }
+                });
+
+                if (response.ok) {
+                    window.location.reload();
+                    return;
+                }
+
+                alert('Could not delete the banner. Please try again.');
+            });
+
+            if (fileSearch) {
+                const input = fileSearch.querySelector('[data-file-search-input]');
+                const results = fileSearch.querySelector('[data-file-search-results]');
+                const status = fileSearch.querySelector('[data-file-search-status]');
+                const spinner = fileSearch.querySelector('[data-file-search-spinner]');
+                let request;
+                let debounce;
+
+                const read = (item, ...keys) => keys.map(key => item?.[key]).find(value => value !== undefined && value !== null);
+                const formatSize = value => {
+                    const bytes = Number(value);
+                    if (!Number.isFinite(bytes)) return 'Size unavailable';
+                    if (bytes === 0) return '0 B';
+                    const units = ['B', 'KB', 'MB', 'GB'];
+                    const unit = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+                    return `${(bytes / Math.pow(1024, unit)).toFixed(unit ? 1 : 0)} ${units[unit]}`;
+                };
+                const formatDate = value => {
+                    const date = value ? new Date(value) : null;
+                    return date && !Number.isNaN(date.valueOf())
+                        ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+                        : 'Creation date unavailable';
+                };
+                const showState = (title, copy, icon = 'bi-file-earmark') => {
+                    results.replaceChildren();
+                    const state = document.createElement('div');
+                    state.className = 'upload-file-search__empty';
+                    state.innerHTML = `<i class="bi ${icon}" aria-hidden="true"></i><div><strong></strong><span></span></div>`;
+                    state.querySelector('strong').textContent = title;
+                    state.querySelector('span').textContent = copy;
+                    results.append(state);
+                };
+                const render = payload => {
+                    const source = payload?.items ?? payload?.results ?? payload?.files ?? payload;
+                    const items = (Array.isArray(source) ? source : source ? [source] : []).filter(Boolean);
+                    const query = input.value.trim();
+                    status.textContent = items.length ? `${items.length} file${items.length === 1 ? '' : 's'}` : 'No files';
+
+                    if (!items.length) {
+                        showState(query ? 'No matching file' : 'No banner uploaded', query ? 'Try another filename or metadata value.' : 'Upload a banner to see its metadata here.', query ? 'bi-search' : 'bi-cloud-arrow-up');
+                        return;
+                    }
+
+                    results.replaceChildren(...items.map(item => {
+                        const path = String(read(item, 'fileName', 'filename', 'name', 'path', 'filePath', 'bannerImagePath') ?? 'Event banner');
+                        const contentType = String(read(item, 'contentType', 'mimeType', 'type') ?? 'Content type unavailable');
+                        const size = read(item, 'sizeBytes', 'fileSize', 'size', 'length');
+                        const created = read(item, 'createdAtUtc', 'createdUtc', 'createdAt', 'creationDate', 'uploadedAtUtc');
+                        const card = document.createElement('article');
+                        card.className = 'upload-file-result';
+                        card.innerHTML = `
+                            <span class="upload-file-result__icon"><i class="bi bi-file-earmark-image" aria-hidden="true"></i></span>
+                            <div class="upload-file-result__body">
+                                <strong class="upload-file-result__name"></strong>
+                                <div class="upload-file-result__meta">
+                                    <span><i class="bi bi-braces"></i></span>
+                                    <span><i class="bi bi-hdd"></i></span>
+                                    <span><i class="bi bi-calendar3"></i></span>
+                                </div>
+                            </div>`;
+                        card.querySelector('.upload-file-result__name').textContent = path;
+                        const meta = card.querySelectorAll('.upload-file-result__meta span');
+                        meta[0].append(document.createTextNode(contentType));
+                        meta[1].append(document.createTextNode(formatSize(size)));
+                        meta[2].append(document.createTextNode(formatDate(created)));
+                        return card;
+                    }));
+                };
+                const search = async () => {
+                    request?.abort();
+                    const currentRequest = new AbortController();
+                    request = currentRequest;
+                    spinner.hidden = false;
+                    status.textContent = 'Searching...';
+                    try {
+                        const url = `${fileSearch.dataset.searchUrl}?query=${encodeURIComponent(input.value.trim())}`;
+                        const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: currentRequest.signal });
+                        if (!response.ok) throw new Error();
+                        render(await response.json());
+                    } catch (error) {
+                        if (error.name !== 'AbortError') {
+                            status.textContent = 'Unavailable';
+                            showState('Could not load file metadata', 'Please try the search again.', 'bi-exclamation-circle');
+                        }
+                    } finally {
+                        if (request === currentRequest) spinner.hidden = true;
+                    }
+                };
+
+                input.addEventListener('input', () => {
+                    window.clearTimeout(debounce);
+                    debounce = window.setTimeout(search, 250);
+                });
+                search();
+            }
+        })();
+    </script>
 }

@@ -1,9 +1,10 @@
 using cs2_esports.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace cs2_esports.Data;
 
-public class Cs2ScopeDbContext : DbContext
+public class Cs2ScopeDbContext : IdentityDbContext<AppUser>
 {
     public Cs2ScopeDbContext(DbContextOptions<Cs2ScopeDbContext> options) : base(options)
     {

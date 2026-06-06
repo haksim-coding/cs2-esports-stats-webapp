@@ -17,10 +17,11 @@
             {
                 foreach (var player in Model.SelectedPlayers)
                 {
+                    var playerImagePath = string.IsNullOrWhiteSpace(player.ImagePath) ? Url.Content("~/images/default-avatar.svg") : Url.Content(player.ImagePath);
                     <div class="team-player-roster-card" data-player-card data-player-chip data-player-id="@player.Id" data-player-text="@player.Text">
                         <button type="button" class="team-player-roster-card__remove" data-player-remove aria-label="Remove @player.Text">×</button>
                         <div class="team-player-roster-card__avatar">
-                            <img src="~/images/default-avatar.svg" alt="@player.Text" />
+                            <img src="@playerImagePath" alt="@player.Text" asp-append-version="true" />
                         </div>
                         <div class="team-player-roster-card__body">
                             <div class="team-player-roster-card__name text-truncate">@player.Text</div>

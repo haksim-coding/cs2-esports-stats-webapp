@@ -2,6 +2,7 @@ using cs2_esports.Data;
 using cs2_esports.Helpers;
 using cs2_esports.Models;
 using cs2_esports.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
@@ -38,9 +39,10 @@ public class MatchesController : Controller
     }
 
     [HttpGet]
+    [Authorize(Roles = EventRoleHelper.SuperAdminOnlyRoles)]
     public IActionResult Create()
     {
-        if (!IsAdminUser())
+        if (!EventRoleHelper.CanManageRosterContent(User))
         {
             return NotFound();
         }
@@ -58,9 +60,10 @@ public class MatchesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = EventRoleHelper.SuperAdminOnlyRoles)]
     public IActionResult Create(MatchCreateModel model)
     {
-        if (!IsAdminUser())
+        if (!EventRoleHelper.CanManageRosterContent(User))
         {
             return NotFound();
         }
@@ -80,9 +83,10 @@ public class MatchesController : Controller
     }
 
     [HttpGet]
+    [Authorize(Roles = EventRoleHelper.SuperAdminOnlyRoles)]
     public IActionResult Edit(int id)
     {
-        if (!IsAdminUser())
+        if (!EventRoleHelper.CanManageRosterContent(User))
         {
             return NotFound();
         }
@@ -101,9 +105,10 @@ public class MatchesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = EventRoleHelper.SuperAdminOnlyRoles)]
     public IActionResult Edit(MatchEditModel model)
     {
-        if (!IsAdminUser())
+        if (!EventRoleHelper.CanManageRosterContent(User))
         {
             return NotFound();
         }
@@ -139,9 +144,10 @@ public class MatchesController : Controller
     }
 
     [HttpGet]
+    [Authorize(Roles = EventRoleHelper.SuperAdminOnlyRoles)]
     public IActionResult Delete(int id)
     {
-        if (!IsAdminUser())
+        if (!EventRoleHelper.CanManageRosterContent(User))
         {
             return NotFound();
         }
@@ -158,9 +164,10 @@ public class MatchesController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [ActionName("Delete")]
+    [Authorize(Roles = EventRoleHelper.SuperAdminOnlyRoles)]
     public IActionResult DeleteConfirmed(int id)
     {
-        if (!IsAdminUser())
+        if (!EventRoleHelper.CanManageRosterContent(User))
         {
             return NotFound();
         }
@@ -404,9 +411,4 @@ public class MatchesController : Controller
         };
     }
 
-    private bool IsAdminUser()
-    {
-        return string.Equals(HttpContext.Session.GetString(AuthSessionKeys.UserType), AuthSessionKeys.AdminUserType, StringComparison.Ordinal)
-            && HttpContext.Session.GetInt32(AuthSessionKeys.AdminUserId).HasValue;
-    }
 }
