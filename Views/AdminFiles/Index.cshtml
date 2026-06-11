@@ -1,0 +1,100 @@
+@model AdminFilesIndexViewModel
+@{
+    ViewData["Title"] = "File Management";
+
+    static string FormatSize(long bytes)
+    {
+        var units = new[] { "B", "KB", "MB", "GB" };
+        var size = (double)bytes;
+        var unit = 0;
+        while (size >= 1024 && unit < units.Length - 1)
+        {
+            size /= 1024;
+            unit++;
+        }
+
+        return $"{size:0.#} {units[unit]}";
+    }
+}
+
+<div class="admin-files-page">
+    @if (TempData["AdminFilesMessage"] is string message)
+    {
+        <div class="alert alert-success mb-0" role="status">@message</div>
+    }
+
+    <header class="admin-files-hero">
+        <div>
+            <span class="admin-files-eyebrow"><i class="bi bi-shield-lock"></i> SuperAdmin workspace</span>
+            <h1>File management</h1>
+            <p>Inspect uploaded media, see where it is used, and permanently remove files that are no longer needed.</p>
+        </div>
+        <div class="admin-files-summary" aria-label="File totals">
+            <span><strong>@Model.EventFiles.Count</strong> event files</span>
+            <span><strong>@Model.PlayerFiles.Count</strong> player files</span>
+        </div>
+    </header>
+
+    @foreach (var fileGroup in new[] {
+        new { Id = "event-files", Title = "Event banners", Copy = "Wide artwork used by event pages.", Files = Model.EventFiles },
+        new { Id = "player-files", Title = "Player images", Copy = "Portrait artwork used by player profiles.", Files = Model.PlayerFiles }
+    })
+    {
+        <section class="admin-files-section" aria-labelledby="@fileGroup.Id">
+            <div class="admin-files-section__heading">
+                <div>
+                    <h2 id="@fileGroup.Id">@fileGroup.Title</h2>
+                    <p>@fileGroup.Copy</p>
+                </div>
+                <span class="admin-files-count">@fileGroup.Files.Count files</span>
+            </div>
+
+            @if (fileGroup.Files.Count == 0)
+            {
+                <div class="admin-files-empty">
+                    <i class="bi bi-folder2-open"></i>
+                    <div><strong>No files found</strong><span>This folder is currently empty.</span></div>
+                </div>
+            }
+            else
+            {
+                <div class="admin-files-grid">
+                    @foreach (var file in fileGroup.Files)
+                    {
+                        <article class="admin-file-card">
+                            <div class="admin-file-card__preview">
+                                <img src="@Url.Content(file.WebPath)" alt="Preview of @file.FileName" loading="lazy" decoding="async" />
+                                <span>@file.Kind</span>
+                            </div>
+                            <div class="admin-file-card__body">
+                                <h3 title="@file.FileName">@file.FileName</h3>
+                                <div class="admin-file-card__meta">
+                                    <span><i class="bi bi-braces"></i>@file.ContentType</span>
+                                    <span><i class="bi bi-hdd"></i>@FormatSize(file.FileSize)</span>
+                                    <span><i class="bi bi-calendar3"></i>@file.CreatedAtUtc.ToLocalTime().ToString("g")</span>
+                                </div>
+                                <div class="admin-file-card__usage">
+                                    <strong>@file.AssignedEntities.Count assigned</strong>
+                                    @if (file.AssignedEntities.Count > 0)
+                                    {
+                                        <span title="@string.Join(", ", file.AssignedEntities)">@string.Join(", ", file.AssignedEntities)</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Not currently attached to an entity</span>
+                                    }
+                                </div>
+                            </div>
+                            <form action="/admin/files/delete" method="post" class="admin-file-card__delete" onsubmit="return confirm('Permanently delete this file? It will be detached from every assigned entity.');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="kind" value="@file.Kind" />
+                                <input type="hidden" name="path" value="@file.WebPath" />
+                                <button class="btn btn-outline-danger" type="submit"><i class="bi bi-trash3"></i> Delete</button>
+                            </form>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+    }
+</div>

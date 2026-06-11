@@ -39,6 +39,9 @@ public class EventCreateModel
     [ValidateNever]
     public IFormFile? BannerImage { get; set; }
 
+    [ValidateNever]
+    public string? ExistingBannerPath { get; set; }
+
     [Range(1, int.MaxValue)]
     [Display(Name = "Venue")]
     public int EventVenueId { get; set; }

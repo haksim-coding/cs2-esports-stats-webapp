@@ -61,24 +61,47 @@
         </div>
         <div class="col-12">
             <label class="form-label text-light" for="PlayerImage">Player image</label>
-            <label class="event-banner-dropzone player-image-dropzone" for="PlayerImage" data-player-image-dropzone>
-                <span class="event-banner-dropzone__icon"><i class="bi bi-image"></i></span>
-                <span class="event-banner-dropzone__copy">
-                    <span class="event-banner-dropzone__title">Drop or upload PNG/WebP player image</span>
-                    <span class="event-banner-dropzone__meta" data-player-image-file-name>Recommended portrait artwork. PNG or WebP.</span>
-                </span>
-                <span class="event-banner-dropzone__action">Choose file</span>
-                <input asp-for="PlayerImage" class="event-banner-dropzone__input player-image-dropzone__input" type="file" accept="image/png,image/webp" />
-            </label>
-            <div class="event-banner-selection-preview player-image-selection-preview" data-player-image-preview hidden>
-                <div class="event-banner-selection-preview__media player-image-selection-preview__media">
-                    <img alt="Selected player image preview" data-player-image-preview-image />
+            <div class="upload-file-picker" data-create-file-picker data-search-url="/players/image/search">
+                <label class="event-banner-dropzone player-image-dropzone" for="PlayerImage" data-player-image-dropzone>
+                    <span class="event-banner-dropzone__icon"><i class="bi bi-image"></i></span>
+                    <span class="event-banner-dropzone__copy">
+                        <span class="event-banner-dropzone__title">Drop or upload PNG/WebP player image</span>
+                        <span class="event-banner-dropzone__meta" data-player-image-file-name>Recommended portrait artwork. PNG or WebP.</span>
+                    </span>
+                    <span class="event-banner-dropzone__action">Choose file</span>
+                    <input asp-for="PlayerImage" class="event-banner-dropzone__input player-image-dropzone__input" type="file" accept="image/png,image/webp" />
+                </label>
+                <input asp-for="ExistingImagePath" type="hidden" data-existing-file-path />
+                <div class="event-banner-selection-preview player-image-selection-preview upload-existing-selection" data-player-image-preview hidden>
+                    <div class="event-banner-selection-preview__media player-image-selection-preview__media">
+                        <img alt="Selected player image preview" data-player-image-preview-image />
+                    </div>
+                    <div class="event-banner-selection-preview__body">
+                        <span class="event-banner-selection-preview__label" data-selection-label>Selected image</span>
+                        <span class="event-banner-selection-preview__name" data-player-image-preview-name></span>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary upload-existing-selection__clear" type="button" data-clear-existing-file hidden>
+                        <i class="bi bi-x-lg" aria-hidden="true"></i> Clear
+                    </button>
                 </div>
-                <div class="event-banner-selection-preview__body">
-                    <span class="event-banner-selection-preview__label">Selected image</span>
-                    <span class="event-banner-selection-preview__name" data-player-image-preview-name></span>
+                <div class="upload-file-search" data-upload-file-search>
+                    <div class="upload-file-search__heading">
+                        <div>
+                            <h3 class="upload-file-search__title">Or reuse an uploaded player image</h3>
+                            <p class="upload-file-search__hint">Showing 5 recent files. Type at least 2 characters to search more.</p>
+                        </div>
+                        <span class="upload-file-search__status" data-file-search-status aria-live="polite"></span>
+                    </div>
+                    <label class="upload-file-search__field">
+                        <span class="visually-hidden">Search for already uploaded player images</span>
+                        <i class="bi bi-search" aria-hidden="true"></i>
+                        <input class="form-control cs2-form-control" type="search" placeholder="Search for already uploaded files..." autocomplete="off" data-file-search-input />
+                        <span class="spinner-border spinner-border-sm upload-file-search__spinner" role="status" aria-hidden="true" data-file-search-spinner hidden></span>
+                    </label>
+                    <div class="upload-file-search__results" data-file-search-results aria-live="polite"></div>
                 </div>
             </div>
+            <span asp-validation-for="ExistingImagePath" class="text-danger small"></span>
             <span asp-validation-for="PlayerImage" class="text-danger small"></span>
         </div>
 
@@ -91,4 +114,140 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const picker = document.querySelector('[data-create-file-picker]');
+            const input = picker?.querySelector('.player-image-dropzone__input');
+            const fileName = picker?.querySelector('[data-player-image-file-name]');
+            const preview = picker?.querySelector('[data-player-image-preview]');
+            const previewImage = picker?.querySelector('[data-player-image-preview-image]');
+            const previewName = picker?.querySelector('[data-player-image-preview-name]');
+            const selectionLabel = picker?.querySelector('[data-selection-label]');
+            const existingPath = picker?.querySelector('[data-existing-file-path]');
+            const clearExisting = picker?.querySelector('[data-clear-existing-file]');
+            const fileSearch = picker?.querySelector('[data-upload-file-search]');
+            if (!input || !fileSearch || !existingPath) return;
+
+            const results = fileSearch.querySelector('[data-file-search-results]');
+            const searchInput = fileSearch.querySelector('[data-file-search-input]');
+            const status = fileSearch.querySelector('[data-file-search-status]');
+            const spinner = fileSearch.querySelector('[data-file-search-spinner]');
+            let objectUrl;
+            let request;
+            let debounce;
+            const read = (item, ...keys) => keys.map(key => item?.[key]).find(value => value !== undefined && value !== null);
+            const showSearch = () => { fileSearch.hidden = false; fileSearch.classList.remove('is-leaving'); };
+            const hideSearch = () => {
+                fileSearch.classList.add('is-leaving');
+                window.setTimeout(() => fileSearch.hidden = true, 260);
+            };
+            const showState = (title, copy) => {
+                results.innerHTML = '<div class="upload-file-search__empty"><i class="bi bi-search"></i><div><strong></strong><span></span></div></div>';
+                results.querySelector('strong').textContent = title;
+                results.querySelector('span').textContent = copy;
+            };
+
+            if (existingPath.value) {
+                const existingName = existingPath.value.split('/').pop();
+                selectionLabel.textContent = 'Using uploaded image';
+                previewImage.src = existingPath.value;
+                previewName.textContent = existingName;
+                preview.hidden = false;
+                clearExisting.hidden = false;
+                fileSearch.hidden = true;
+            }
+
+            input.addEventListener('change', () => {
+                const file = input.files?.[0];
+                existingPath.value = '';
+                selectionLabel.textContent = 'Selected image';
+                if (objectUrl) URL.revokeObjectURL(objectUrl);
+                if (!file) {
+                    preview.hidden = true;
+                    fileName.textContent = 'Recommended portrait artwork. PNG or WebP.';
+                    clearExisting.hidden = true;
+                    showSearch();
+                    return;
+                }
+                objectUrl = URL.createObjectURL(file);
+                previewImage.src = objectUrl;
+                previewName.textContent = file.name;
+                fileName.textContent = file.name;
+                preview.hidden = false;
+                clearExisting.hidden = false;
+                hideSearch();
+            });
+
+            clearExisting.addEventListener('click', () => {
+                existingPath.value = '';
+                input.value = '';
+                fileName.textContent = 'Recommended portrait artwork. PNG or WebP.';
+                preview.hidden = true;
+                previewImage.removeAttribute('src');
+                previewName.textContent = '';
+                clearExisting.hidden = true;
+                showSearch();
+            });
+
+            const render = payload => {
+                const source = payload?.items ?? payload?.results ?? payload?.files ?? payload;
+                const items = (Array.isArray(source) ? source : []).filter(Boolean);
+                status.textContent = items.length ? `${items.length} file${items.length === 1 ? '' : 's'}` : 'No files';
+                if (!items.length) {
+                    showState('No matching files', searchInput.value.trim() ? 'Try another file name.' : 'No uploaded player images are available yet.');
+                    return;
+                }
+                results.replaceChildren(...items.map(item => {
+                    const path = String(read(item, 'path', 'filePath') ?? '');
+                    const name = String(read(item, 'fileName', 'filename', 'name') ?? path);
+                    const card = document.createElement('article');
+                    card.className = 'upload-file-result';
+                    card.innerHTML = '<span class="upload-file-result__thumbnail"><img alt="" loading="lazy" /></span><div class="upload-file-result__body"><strong class="upload-file-result__name"></strong></div><button class="btn btn-sm btn-outline-info upload-file-result__attach" type="button"><i class="bi bi-check2"></i> Select</button>';
+                    card.querySelector('img').src = path;
+                    card.querySelector('img').alt = `${name} preview`;
+                    card.querySelector('.upload-file-result__name').textContent = name;
+                    card.querySelector('button').addEventListener('click', () => {
+                        existingPath.value = path;
+                        input.value = '';
+                        fileName.textContent = 'Recommended portrait artwork. PNG or WebP.';
+                        selectionLabel.textContent = 'Using uploaded image';
+                        previewImage.src = path;
+                        previewName.textContent = name;
+                        preview.hidden = false;
+                        clearExisting.hidden = false;
+                        hideSearch();
+                    });
+                    return card;
+                }));
+            };
+            const search = async () => {
+                const query = searchInput.value.trim();
+                if (query.length === 1) {
+                    request?.abort();
+                    status.textContent = '2 characters minimum';
+                    showState('Keep typing', 'Enter one more character to search uploaded files.');
+                    return;
+                }
+                request?.abort();
+                const current = new AbortController();
+                request = current;
+                spinner.hidden = false;
+                status.textContent = query ? 'Searching...' : 'Recent files';
+                try {
+                    const response = await fetch(`${picker.dataset.searchUrl}?query=${encodeURIComponent(query)}`, { headers: { Accept: 'application/json' }, signal: current.signal });
+                    if (!response.ok) throw new Error();
+                    render(await response.json());
+                } catch (error) {
+                    if (error.name !== 'AbortError') showState('Search unavailable', 'Please try again.');
+                } finally {
+                    if (request === current) spinner.hidden = true;
+                }
+            };
+            searchInput.addEventListener('input', () => {
+                window.clearTimeout(debounce);
+                debounce = window.setTimeout(search, 250);
+            });
+            search();
+        })();
+    </script>
 }

@@ -1,81 +1,182 @@
-@model cs2_esports.Models.Player
+@model cs2_esports.Models.PlayerDetailsViewModel
 @{
-    ViewData["Title"] = "Player Details";
-    var teamLogoPath = Model.Team is null ? null : TeamLogoResolver.GetLogoPath(Model.Team.Name, Model.Team.Tag);
+    var player = Model.Player;
+    ViewData["Title"] = player.Nickname + " - Player Profile";
+    var teamLogoPath = player.Team is null ? null : TeamLogoResolver.GetLogoPath(player.Team.Name, player.Team.Tag);
     var canManageRosterContent = EventRoleHelper.CanManageRosterContent(User);
-    var playerImagePath = string.IsNullOrWhiteSpace(Model.ImagePath) ? Url.Content("~/images/default-avatar.svg") : Url.Content(Model.ImagePath);
+    var playerImagePath = string.IsNullOrWhiteSpace(player.ImagePath) ? Url.Content("~/images/default-avatar.svg") : Url.Content(player.ImagePath);
+    var ratingClass = player.Rating2 < 1.00m ? "player-stat-value--danger" : "player-stat-value--positive";
 }
 
-<div class="esports-card mb-4">
-    <div class="row align-items-center">
-        <!-- Player Identity -->
-        <div class="col-md-5 text-center text-md-start border-md-end mb-4 mb-md-0" style="border-color: #2d3340 !important">
-            <div class="player-details-portrait mb-3">
-                <img src="@playerImagePath" alt="@Model.Nickname image" loading="eager" decoding="async" asp-append-version="true" />
+<main class="player-profile">
+    <section class="player-hero" aria-labelledby="player-profile-title">
+        <div class="player-hero__art" aria-hidden="true">
+            <span class="player-hero__orb player-hero__orb--cyan"></span>
+            <span class="player-hero__orb player-hero__orb--violet"></span>
+            <span class="player-hero__crosshair"></span>
+            <span class="player-hero__scanline"></span>
+        </div>
+
+        <div class="player-hero__portrait-stage">
+            <div class="player-hero__portrait-frame">
+                <span class="player-hero__portrait-index" aria-hidden="true">@player.Id.ToString("00")</span>
+                <img src="@playerImagePath" alt="Portrait of @player.Nickname" loading="eager" decoding="async" asp-append-version="true" />
             </div>
-            <div class="d-flex align-items-center justify-content-between gap-3 mb-1">
-                <h1 class="display-5 text-light fw-bold mb-0">@Model.Nickname</h1>
-                <div class="d-flex gap-2 align-items-center">
-                @if (Context.Session.GetInt32("ForumUserId").HasValue)
-                {
-                    <form asp-controller="Favorites" asp-action="TogglePlayer" asp-route-id="@Model.Id" asp-route-returnUrl="@Context.Request.Path" method="post" class="player-save-action" onclick="event.stopPropagation();">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-favorite-action @(Model.IsFavorite ? "active" : string.Empty)" title="@(Model.IsFavorite ? "Remove from favorites" : "Save to favorites")">
-                            <span class="favorite-heart @(Model.IsFavorite ? "favorite-heart--active" : string.Empty)">@(Model.IsFavorite ? "♥" : "♡")</span>
-                            <span class="ms-2 d-none d-sm-inline">@(Model.IsFavorite ? "Saved" : "Save")</span>
-                        </button>
-                    </form>
-                }
-                @if (canManageRosterContent)
-                {
-                    <a href="/players/edit/@Model.Id" class="btn btn-outline-info btn-sm">Edit</a>
-                    <a href="/players/delete/@Model.Id" class="btn btn-outline-danger btn-sm">Delete</a>
-                }
-            </div>
-            </div>
-            <p class="text-muted fs-5 mb-3">@Model.FullName</p>
-            
-            <div class="d-flex justify-content-center justify-content-md-start align-items-center gap-3">
-                <span class="badge border border-primary text-light px-3 py-2">@Model.Role</span>
-                <img src="@CountryFlagHelper.GetFlagImageUrl(Model.CountryCode)" alt="@Model.CountryCode flag" class="country-flag-img country-flag--inline" loading="lazy" decoding="async" />
+            <div class="player-hero__portrait-caption" aria-hidden="true">
+                <span>PLAYER PROFILE</span>
+                <span>CS2 / @player.Role.ToString().ToUpperInvariant()</span>
             </div>
         </div>
 
-        <!-- Core Stats -->
-        <div class="col-md-7">
-            <div class="row text-center z-1">
-                <div class="col-4">
-                    <p class="text-muted text-uppercase small fw-bold mb-2">Current Team</p>
-                    <p class="text-light fs-5">
-                        @if (Model.Team is null)
+        <div class="player-hero__content">
+            <div class="player-hero__eyebrow">
+                <span class="player-live-dot @(player.Team is null ? "player-live-dot--muted" : string.Empty)"></span>
+                @(player.Team is null ? "Free agent" : "Active competitor")
+            </div>
+
+            <div class="player-hero__title-row">
+                <div>
+                    <h1 id="player-profile-title" class="player-hero__nickname">@player.Nickname</h1>
+                    <p class="player-hero__real-name">@player.FullName</p>
+                </div>
+
+                <div class="player-profile-actions">
+                    @if (Context.Session.GetInt32("ForumUserId").HasValue)
+                    {
+                        <form asp-controller="Favorites" asp-action="TogglePlayer" asp-route-id="@player.Id" asp-route-returnUrl="@Context.Request.Path" method="post" class="player-save-action">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-favorite-action @(player.IsFavorite ? "active" : string.Empty)" title="@(player.IsFavorite ? "Remove from favorites" : "Save to favorites")">
+                                <span class="favorite-heart @(player.IsFavorite ? "favorite-heart--active" : string.Empty)" aria-hidden="true">@(player.IsFavorite ? "♥" : "♡")</span>
+                                <span>@(player.IsFavorite ? "Saved" : "Save")</span>
+                            </button>
+                        </form>
+                    }
+                    @if (canManageRosterContent)
+                    {
+                        <a href="/players/edit/@player.Id" class="btn btn-outline-info btn-sm">Edit</a>
+                        <a href="/players/delete/@player.Id" class="btn btn-outline-danger btn-sm">Delete</a>
+                    }
+                </div>
+            </div>
+
+            <div class="player-hero__chips" aria-label="Player overview">
+                <span class="player-chip player-chip--role">@player.Role</span>
+                <span class="player-chip">
+                    <img src="@CountryFlagHelper.GetFlagImageUrl(player.CountryCode)" alt="" class="country-flag-img country-flag--inline" loading="lazy" decoding="async" />
+                    <span>@player.CountryCode</span>
+                </span>
+                @if (player.Team is null)
+                {
+                    <span class="player-chip player-chip--muted">Free agent</span>
+                }
+                else
+                {
+                    <a asp-controller="Teams" asp-action="DetailsBySlug" asp-route-slug="@RouteSlugHelper.ToRouteSegment(player.Team.Name)" class="player-chip player-chip--team">
+                        @if (!string.IsNullOrWhiteSpace(teamLogoPath))
                         {
-                            <span class="text-muted">-</span>
+                            <img src="@Url.Content(teamLogoPath)" class="team-logo" alt="" />
                         }
                         else
                         {
-                            <a asp-controller="Teams" asp-action="DetailsBySlug" asp-route-slug="@RouteSlugHelper.ToRouteSegment(Model.Team.Name)" class="team-mention-link justify-content-center">
-                                @if (!string.IsNullOrWhiteSpace(teamLogoPath))
-                                {
-                                    <img src="@Url.Content(teamLogoPath)" class="team-logo" alt="@Model.Team.Name logo" />
-                                }
-                                else
-                                {
-                                    <span class="team-logo-fallback">@TeamLogoResolver.GetBadgeText(Model.Team.Name, Model.Team.Tag)</span>
-                                }
-                                <strong>@Model.Team.Name</strong>
-                            </a>
+                            <span class="team-logo-fallback">@TeamLogoResolver.GetBadgeText(player.Team.Name, player.Team.Tag)</span>
                         }
-                    </p>
+                        <span>@player.Team.Name</span>
+                    </a>
+                }
+            </div>
+
+            <div class="player-stats">
+                <div class="player-stat">
+                    <span class="player-stat__label">Rating 2.0</span>
+                    <strong class="player-stat__value @ratingClass">@player.Rating2</strong>
+                    <span class="player-stat__meta">Performance index</span>
                 </div>
-                <div class="col-4 border-start border-end" style="border-color: #2d3340 !important">
-                    <p class="text-muted text-uppercase small fw-bold mb-2">Rating 2.0</p>
-                    <p class="@(Model.Rating2 < 1.00m ? "text-danger" : "text-success") fw-bold fs-4 mb-0">@Model.Rating2</p>
+                <div class="player-stat">
+                    <span class="player-stat__label">Maps played</span>
+                    <strong class="player-stat__value">@player.TotalMapsPlayed</strong>
+                    <span class="player-stat__meta">Recorded maps</span>
                 </div>
-                <div class="col-4">
-                    <p class="text-muted text-uppercase small fw-bold mb-2">Maps Played</p>
-                    <p class="text-light fs-5 mb-0">@Model.TotalMapsPlayed</p>
+                <div class="player-stat">
+                    <span class="player-stat__label">Current squad</span>
+                    <strong class="player-stat__value player-stat__value--team">@(player.Team?.Tag ?? "FA")</strong>
+                    <span class="player-stat__meta">@(player.Team?.Name ?? "Available")</span>
                 </div>
             </div>
         </div>
-    </div>
-</div>
+    </section>
+
+    <section class="player-fixtures" aria-labelledby="player-fixtures-title">
+        <div class="player-fixtures__heading">
+            <div>
+                <span class="player-section-kicker">Next on server</span>
+                <h2 id="player-fixtures-title">Upcoming matches</h2>
+                <p>@(player.Team is null ? "Match schedule will appear after the player joins a team." : $"Scheduled appearances with {player.Team.Name}.")</p>
+            </div>
+            @if (Model.UpcomingMatches.Count > 0)
+            {
+                <span class="player-fixtures__count">@Model.UpcomingMatches.Count match@(Model.UpcomingMatches.Count == 1 ? string.Empty : "es")</span>
+            }
+        </div>
+
+        @if (Model.UpcomingMatches.Count == 0)
+        {
+            <div class="player-fixtures__empty">
+                <span class="player-fixtures__empty-mark" aria-hidden="true">00</span>
+                <div>
+                    <h3>No matches on the radar</h3>
+                    <p class="mb-0">@(player.Team is null ? "This player is currently a free agent." : "There are no upcoming matches scheduled for this team.")</p>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="player-match-list">
+                @foreach (var match in Model.UpcomingMatches)
+                {
+                    var teamALogo = match.TeamA is null ? null : TeamLogoResolver.GetLogoPath(match.TeamA.Name, match.TeamA.Tag);
+                    var teamBLogo = match.TeamB is null ? null : TeamLogoResolver.GetLogoPath(match.TeamB.Name, match.TeamB.Tag);
+                    var localSchedule = match.ScheduledAtUtc.ToLocalTime();
+                    <a asp-controller="Matches" asp-action="Details" asp-route-id="@match.Id" class="player-match-card" aria-label="Open match: @match.TeamA?.Name versus @match.TeamB?.Name">
+                        <div class="player-match-card__schedule">
+                            <span class="player-match-card__day">@localSchedule.ToString("dd")</span>
+                            <span class="player-match-card__month">@localSchedule.ToString("MMM")</span>
+                            <span class="player-match-card__time">@localSchedule.ToString("HH:mm")</span>
+                        </div>
+                        <div class="player-match-card__body">
+                            <div class="player-match-card__meta">
+                                <span>@(match.Event?.Name ?? "Scheduled match")</span>
+                                <span>@MatchDisplayHelper.GetFormatBadgeLabel(match.Format)</span>
+                            </div>
+                            <div class="player-match-card__versus">
+                                <span class="player-match-team">
+                                    @if (!string.IsNullOrWhiteSpace(teamALogo))
+                                    {
+                                        <img src="@Url.Content(teamALogo)" class="team-logo" alt="" />
+                                    }
+                                    else if (match.TeamA is not null)
+                                    {
+                                        <span class="team-logo-fallback">@TeamLogoResolver.GetBadgeText(match.TeamA.Name, match.TeamA.Tag)</span>
+                                    }
+                                    <strong>@(match.TeamA?.Name ?? "TBD")</strong>
+                                </span>
+                                <span class="player-match-card__vs">VS</span>
+                                <span class="player-match-team player-match-team--right">
+                                    <strong>@(match.TeamB?.Name ?? "TBD")</strong>
+                                    @if (!string.IsNullOrWhiteSpace(teamBLogo))
+                                    {
+                                        <img src="@Url.Content(teamBLogo)" class="team-logo" alt="" />
+                                    }
+                                    else if (match.TeamB is not null)
+                                    {
+                                        <span class="team-logo-fallback">@TeamLogoResolver.GetBadgeText(match.TeamB.Name, match.TeamB.Tag)</span>
+                                    }
+                                </span>
+                            </div>
+                        </div>
+                        <span class="player-match-card__arrow" aria-hidden="true">→</span>
+                    </a>
+                }
+            </div>
+        }
+    </section>
+</main>

@@ -16,14 +16,16 @@ public class PlayersController : Controller
     private readonly IPlayerRepository _playerRepository;
     private readonly IForumRepository _forumRepository;
     private readonly ITeamRepository _teamRepository;
+    private readonly IMatchRepository _matchRepository;
     private readonly IWebHostEnvironment _environment;
     private const string ForumUserSessionKey = "ForumUserId";
 
-    public PlayersController(IPlayerRepository playerRepository, IForumRepository forumRepository, ITeamRepository teamRepository, IWebHostEnvironment environment)
+    public PlayersController(IPlayerRepository playerRepository, IForumRepository forumRepository, ITeamRepository teamRepository, IMatchRepository matchRepository, IWebHostEnvironment environment)
     {
         _playerRepository = playerRepository;
         _forumRepository = forumRepository;
         _teamRepository = teamRepository;
+        _matchRepository = matchRepository;
         _environment = environment;
     }
 
@@ -43,7 +45,7 @@ public class PlayersController : Controller
         }
 
         ApplyFavoriteState(new[] { player });
-        return View(player);
+        return View(BuildDetailsViewModel(player));
     }
 
     [HttpGet("/player/{slug}")]
@@ -64,7 +66,7 @@ public class PlayersController : Controller
         }
 
         ApplyFavoriteState(new[] { player });
-        return View("Details", player);
+        return View("Details", BuildDetailsViewModel(player));
     }
 
     [HttpGet]
@@ -97,6 +99,11 @@ public class PlayersController : Controller
 
         ValidatePlayer(model);
         ValidatePlayerImage(model.PlayerImage, nameof(model.PlayerImage));
+        var existingImage = GetExistingFile(GetPlayerImageRoot(), "/images/players", model.ExistingImagePath, [".png", ".webp"]);
+        if (model.PlayerImage is null && !string.IsNullOrWhiteSpace(model.ExistingImagePath) && existingImage is null)
+        {
+            ModelState.AddModelError(nameof(model.ExistingImagePath), "The selected existing player image could not be found.");
+        }
 
         if (!ModelState.IsValid)
         {
@@ -105,7 +112,7 @@ public class PlayersController : Controller
         }
 
         var player = MapToPlayer(model);
-        var imageUpload = SavePlayerImage(model.PlayerImage);
+        var imageUpload = SavePlayerImage(model.PlayerImage) ?? existingImage;
         if (imageUpload is not null)
         {
             ApplyImageMetadata(player, imageUpload);
@@ -179,11 +186,10 @@ public class PlayersController : Controller
         }
 
         _playerRepository.Update(player);
-        DeletePlayerImageIfReplaced(previousImagePath, newImagePath);
         return RedirectToAction(nameof(DetailsBySlug), new { slug = RouteSlugHelper.ToRouteSegment(player.Nickname) });
     }
 
-    [HttpPost]
+    [HttpPost("/players/{id:int}/image")]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = EventRoleHelper.SuperAdminOnlyRoles)]
     public IActionResult UploadImage(int id, IFormFile? file)
@@ -205,13 +211,11 @@ public class PlayersController : Controller
             return BadRequest(new { message = validationError });
         }
 
-        var previousImagePath = player.ImagePath;
         var imageUpload = SavePlayerImage(file)!;
         var newImagePath = imageUpload.Path;
         ApplyImageMetadata(player, imageUpload);
         _playerRepository.Update(player);
 
-        DeletePlayerImageIfReplaced(previousImagePath, newImagePath);
         return Ok(new { path = newImagePath });
     }
 
@@ -230,24 +234,51 @@ public class PlayersController : Controller
             return NotFound();
         }
 
-        return Json(MatchesUploadSearch(
-            query,
-            player.ImagePath,
-            player.ImageContentType,
-            player.ImageFileSize,
-            player.ImageCreatedAtUtc)
-            ? new[]
-            {
-                new
-                {
-                    path = player.ImagePath,
-                    fileName = Path.GetFileName(player.ImagePath),
-                    contentType = player.ImageContentType,
-                    size = player.ImageFileSize,
-                    createdAtUtc = player.ImageCreatedAtUtc
-                }
-            }
-            : Array.Empty<object>());
+        if (!string.IsNullOrWhiteSpace(player.ImagePath))
+        {
+            return Json(Array.Empty<object>());
+        }
+
+        return Json(SearchFiles(GetPlayerImageRoot(), "/images/players", query, [".png", ".webp"]));
+    }
+
+    [HttpGet("/players/image/search")]
+    [Authorize(Roles = EventRoleHelper.SuperAdminOnlyRoles)]
+    public IActionResult SearchAvailableImages(string? query)
+    {
+        if (!EventRoleHelper.CanManageRosterContent(User))
+        {
+            return NotFound();
+        }
+
+        return Json(SearchFiles(GetPlayerImageRoot(), "/images/players", query, [".png", ".webp"]));
+    }
+
+    [HttpPost("/players/{id:int}/image/attach")]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = EventRoleHelper.SuperAdminOnlyRoles)]
+    public IActionResult AttachImage(int id, [FromForm] string? path)
+    {
+        if (!EventRoleHelper.CanManageRosterContent(User))
+        {
+            return NotFound();
+        }
+
+        var player = _playerRepository.GetById(id);
+        if (player is null)
+        {
+            return NotFound();
+        }
+
+        var file = GetExistingFile(GetPlayerImageRoot(), "/images/players", path, [".png", ".webp"]);
+        if (file is null)
+        {
+            return BadRequest(new { message = "The selected player image could not be found." });
+        }
+
+        ApplyImageMetadata(player, file);
+        _playerRepository.Update(player);
+        return Ok(new { path = file.Path });
     }
 
     [HttpPost]
@@ -266,14 +297,11 @@ public class PlayersController : Controller
             return NotFound();
         }
 
-        var previousImagePath = player.ImagePath;
         player.ImagePath = null;
         player.ImageContentType = null;
         player.ImageFileSize = null;
         player.ImageCreatedAtUtc = null;
         _playerRepository.Update(player);
-        DeletePlayerImage(previousImagePath);
-
         return Ok();
     }
 
@@ -387,6 +415,25 @@ public class PlayersController : Controller
         };
     }
 
+    private PlayerDetailsViewModel BuildDetailsViewModel(Player player)
+    {
+        var upcomingMatches = player.TeamId.HasValue
+            ? _matchRepository.GetAll()
+                .Where(match => !match.IsFinished &&
+                    match.ScheduledAtUtc >= DateTime.UtcNow &&
+                    (match.TeamAId == player.TeamId.Value || match.TeamBId == player.TeamId.Value))
+                .OrderBy(match => match.ScheduledAtUtc)
+                .Take(5)
+                .ToList()
+            : [];
+
+        return new PlayerDetailsViewModel
+        {
+            Player = player,
+            UpcomingMatches = upcomingMatches
+        };
+    }
+
     private void ValidatePlayer(PlayerCreateModel model, int? currentPlayerId = null)
     {
         var normalizedNickname = model.Nickname.Trim();
@@ -474,7 +521,7 @@ public class PlayersController : Controller
         var extension = Path.GetExtension(playerImage.FileName).Equals(".webp", StringComparison.OrdinalIgnoreCase)
             ? ".webp"
             : ".png";
-        var fileName = $"{Guid.NewGuid():N}{extension}";
+        var fileName = GetAvailableFileName(uploadDirectory, playerImage.FileName, extension);
         var filePath = Path.Combine(uploadDirectory, fileName);
         using var fileStream = System.IO.File.Create(filePath);
         playerImage.CopyTo(fileStream);
@@ -494,53 +541,82 @@ public class PlayersController : Controller
         player.ImageCreatedAtUtc = upload.CreatedAtUtc;
     }
 
-    private static bool MatchesUploadSearch(string? query, string? path, string? contentType, long? size, DateTime? createdAtUtc)
+    private string GetPlayerImageRoot()
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return false;
-        }
-
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            return true;
-        }
-
-        var normalizedQuery = query.Trim();
-        return path.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase) ||
-               (contentType?.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
-               (size?.ToString().Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
-               (createdAtUtc?.ToString("u").Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase) ?? false);
-    }
-
-    private void DeletePlayerImageIfReplaced(string? previousImagePath, string? newImagePath)
-    {
-        if (string.IsNullOrWhiteSpace(previousImagePath) ||
-            string.IsNullOrWhiteSpace(newImagePath) ||
-            string.Equals(previousImagePath, newImagePath, StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        DeletePlayerImage(previousImagePath);
-    }
-
-    private void DeletePlayerImage(string? imagePath)
-    {
-        if (string.IsNullOrWhiteSpace(imagePath))
-        {
-            return;
-        }
-
-        var relativePath = imagePath.TrimStart('/', '\\').Replace('/', Path.DirectorySeparatorChar);
-        var fullPath = Path.GetFullPath(Path.Combine(_environment.WebRootPath, relativePath));
-        var playerImageRoot = Path.GetFullPath(Path.Combine(_environment.WebRootPath, "images", "players"));
-
-        if (fullPath.StartsWith(playerImageRoot, StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(fullPath))
-        {
-            System.IO.File.Delete(fullPath);
-        }
+        return Path.Combine(_environment.WebRootPath, "images", "players");
     }
 
     private sealed record UploadedFileMetadata(string Path, string ContentType, long Size, DateTime CreatedAtUtc);
+
+    private static IReadOnlyList<object> SearchFiles(string root, string webRoot, string? query, string[] allowedExtensions)
+    {
+        Directory.CreateDirectory(root);
+        var normalizedQuery = query?.Trim() ?? string.Empty;
+        if (normalizedQuery.Length == 1)
+        {
+            return [];
+        }
+
+        var files = Directory.EnumerateFiles(root)
+            .Where(file => allowedExtensions.Contains(Path.GetExtension(file), StringComparer.OrdinalIgnoreCase))
+            .Select(file => new FileInfo(file))
+            .Where(file => normalizedQuery.Length == 0 ||
+                           file.Name.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase));
+
+        files = normalizedQuery.Length == 0
+            ? files.OrderByDescending(file => file.CreationTimeUtc).Take(5)
+            : files.OrderBy(file => file.Name).Take(20);
+
+        return files
+            .Select(file => new
+            {
+                path = $"{webRoot}/{file.Name}",
+                fileName = file.Name,
+                contentType = GetContentType(file.Extension),
+                size = file.Length,
+                createdAtUtc = file.CreationTimeUtc
+            })
+            .Cast<object>()
+            .ToList();
+    }
+
+    private static UploadedFileMetadata? GetExistingFile(string root, string webRoot, string? path, string[] allowedExtensions)
+    {
+        var fileName = Path.GetFileName(path);
+        if (string.IsNullOrWhiteSpace(fileName) || !allowedExtensions.Contains(Path.GetExtension(fileName), StringComparer.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var fullPath = Path.GetFullPath(Path.Combine(root, fileName));
+        var fullRoot = Path.GetFullPath(root);
+        if (!fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase) || !System.IO.File.Exists(fullPath))
+        {
+            return null;
+        }
+
+        var file = new FileInfo(fullPath);
+        return new UploadedFileMetadata($"{webRoot}/{file.Name}", GetContentType(file.Extension), file.Length, file.CreationTimeUtc);
+    }
+
+    private static string GetAvailableFileName(string directory, string originalName, string fallbackExtension)
+    {
+        var stem = string.Concat(Path.GetFileNameWithoutExtension(originalName).Select(character =>
+            Path.GetInvalidFileNameChars().Contains(character) ? '-' : character)).Trim(' ', '.', '-');
+        stem = string.IsNullOrWhiteSpace(stem) ? "upload" : stem;
+        var extension = string.IsNullOrWhiteSpace(Path.GetExtension(originalName)) ? fallbackExtension : Path.GetExtension(originalName).ToLowerInvariant();
+        var fileName = $"{stem}{extension}";
+        var suffix = 2;
+        while (System.IO.File.Exists(Path.Combine(directory, fileName)))
+        {
+            fileName = $"{stem}-{suffix++}{extension}";
+        }
+
+        return fileName;
+    }
+
+    private static string GetContentType(string extension)
+    {
+        return extension.Equals(".webp", StringComparison.OrdinalIgnoreCase) ? "image/webp" : "image/png";
+    }
 }

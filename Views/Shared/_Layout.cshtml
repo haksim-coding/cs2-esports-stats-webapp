@@ -69,7 +69,14 @@
                         }
                         else if (loggedInAdminUser is not null)
                         {
-                            <span class="badge bg-warning text-dark px-3 py-2">Admin</span>
+                            @if (User.IsInRole(EventRoleHelper.SuperAdminRole))
+                            {
+                                <a class="badge bg-warning text-dark px-3 py-2 navbar-admin-badge" href="/admin/files" title="Open admin file management">Admin</a>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark px-3 py-2">Admin</span>
+                            }
                             <span class="text-light small fw-semibold">@loggedInAdminUsername</span>
                             <a class="navbar-welcome-pill" asp-controller="Auth" asp-action="Logout" onclick="return confirm('Logout?');">
                                 <span class="welcome-text">Welcome, <span class="navbar-user-name">@loggedInAdminDisplayName</span></span>

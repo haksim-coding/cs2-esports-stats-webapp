@@ -99,6 +99,11 @@ public class EventsController : Controller
         ValidateEventDates(model);
         ValidateEventUniqueness(model);
         ValidateBannerImage(model.BannerImage);
+        var existingBanner = GetExistingFile(GetBannerRoot(), "/images/events/banners", model.ExistingBannerPath, [".png"]);
+        if (model.BannerImage is null && !string.IsNullOrWhiteSpace(model.ExistingBannerPath) && existingBanner is null)
+        {
+            ModelState.AddModelError(nameof(model.ExistingBannerPath), "The selected existing banner could not be found.");
+        }
 
         if (!ModelState.IsValid)
         {
@@ -106,7 +111,7 @@ public class EventsController : Controller
             return View(model);
         }
 
-        var bannerUpload = SaveBannerImage(model.BannerImage);
+        var bannerUpload = SaveBannerImage(model.BannerImage) ?? existingBanner;
 
         var eventItem = new Event
         {
@@ -199,7 +204,6 @@ public class EventsController : Controller
         eventItem.Teams = _teamRepository.GetByIds(model.SelectedTeamIds).ToList();
 
         _eventRepository.Update(eventItem);
-        DeleteBannerImageIfReplaced(previousBannerImagePath, newBannerImagePath);
         return RedirectToAction(nameof(DetailsBySlug), new { slug = RouteSlugHelper.ToRouteSegment(eventItem.Name) });
     }
 
@@ -225,14 +229,12 @@ public class EventsController : Controller
             return BadRequest(new { message = validationError });
         }
 
-        var previousBannerImagePath = eventItem.BannerImagePath;
         var bannerUpload = SaveBannerImage(file)!;
         var newBannerImagePath = bannerUpload.Path;
         ApplyBannerMetadata(eventItem, bannerUpload);
         eventItem.AdminUserId = GetCurrentAdminUserId();
 
         _eventRepository.Update(eventItem);
-        DeleteBannerImageIfReplaced(previousBannerImagePath, newBannerImagePath);
 
         return Ok(new { path = newBannerImagePath });
     }
@@ -252,24 +254,47 @@ public class EventsController : Controller
             return Forbid();
         }
 
-        return Json(MatchesUploadSearch(
-            query,
-            eventItem.BannerImagePath,
-            eventItem.BannerContentType,
-            eventItem.BannerFileSize,
-            eventItem.BannerCreatedAtUtc)
-            ? new[]
-            {
-                new
-                {
-                    path = eventItem.BannerImagePath,
-                    fileName = Path.GetFileName(eventItem.BannerImagePath),
-                    contentType = eventItem.BannerContentType,
-                    size = eventItem.BannerFileSize,
-                    createdAtUtc = eventItem.BannerCreatedAtUtc
-                }
-            }
-            : Array.Empty<object>());
+        if (!string.IsNullOrWhiteSpace(eventItem.BannerImagePath))
+        {
+            return Json(Array.Empty<object>());
+        }
+
+        return Json(SearchFiles(GetBannerRoot(), "/images/events/banners", query, [".png"]));
+    }
+
+    [HttpGet("/events/banner/search")]
+    [Authorize(Roles = EventRoleHelper.EventAdminRoles)]
+    public IActionResult SearchAvailableBanners(string? query)
+    {
+        return Json(SearchFiles(GetBannerRoot(), "/images/events/banners", query, [".png"]));
+    }
+
+    [HttpPost("/events/{id:int}/banner/attach")]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = EventRoleHelper.EventAdminRoles)]
+    public IActionResult AttachBanner(int id, [FromForm] string? path)
+    {
+        var eventItem = _eventRepository.GetById(id);
+        if (eventItem is null)
+        {
+            return NotFound();
+        }
+
+        if (!EventRoleHelper.CanManageOrganizer(User, eventItem.Organizer))
+        {
+            return Forbid();
+        }
+
+        var file = GetExistingFile(GetBannerRoot(), "/images/events/banners", path, [".png"]);
+        if (file is null)
+        {
+            return BadRequest(new { message = "The selected banner file could not be found." });
+        }
+
+        ApplyBannerMetadata(eventItem, file);
+        eventItem.AdminUserId = GetCurrentAdminUserId();
+        _eventRepository.Update(eventItem);
+        return Ok(new { path = file.Path });
     }
 
     [HttpPost("/events/{id:int}/banner/delete")]
@@ -288,7 +313,6 @@ public class EventsController : Controller
             return Forbid();
         }
 
-        var previousBannerImagePath = eventItem.BannerImagePath;
         eventItem.BannerImagePath = null;
         eventItem.BannerContentType = null;
         eventItem.BannerFileSize = null;
@@ -296,8 +320,6 @@ public class EventsController : Controller
         eventItem.AdminUserId = GetCurrentAdminUserId();
 
         _eventRepository.Update(eventItem);
-        DeleteBannerImage(previousBannerImagePath);
-
         return Ok(new { deleted = true });
     }
 
@@ -334,12 +356,6 @@ public class EventsController : Controller
         if (!EventRoleHelper.CanManageOrganizer(User, eventItem.Organizer))
         {
             return Forbid();
-        }
-
-        if ((eventItem.Teams?.Any() ?? false) || (eventItem.Matches?.Any() ?? false) || (eventItem.ForumThreads?.Any() ?? false))
-        {
-            ModelState.AddModelError(string.Empty, "This event cannot be deleted because it still has teams, matches, or forum threads attached.");
-            return View("Delete", eventItem);
         }
 
         _eventRepository.Delete(id);
@@ -494,7 +510,7 @@ public class EventsController : Controller
         var uploadDirectory = Path.Combine(_environment.WebRootPath, "images", "events", "banners");
         Directory.CreateDirectory(uploadDirectory);
 
-        var fileName = $"{Guid.NewGuid():N}.png";
+        var fileName = GetAvailableFileName(uploadDirectory, bannerImage.FileName, ".png");
         var filePath = Path.Combine(uploadDirectory, fileName);
         using var fileStream = System.IO.File.Create(filePath);
         bannerImage.CopyTo(fileStream);
@@ -514,52 +530,9 @@ public class EventsController : Controller
         eventItem.BannerCreatedAtUtc = upload.CreatedAtUtc;
     }
 
-    private static bool MatchesUploadSearch(string? query, string? path, string? contentType, long? size, DateTime? createdAtUtc)
+    private string GetBannerRoot()
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return false;
-        }
-
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            return true;
-        }
-
-        var normalizedQuery = query.Trim();
-        return path.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase) ||
-               (contentType?.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
-               (size?.ToString().Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
-               (createdAtUtc?.ToString("u").Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase) ?? false);
-    }
-
-    private void DeleteBannerImageIfReplaced(string? previousBannerImagePath, string? newBannerImagePath)
-    {
-        if (string.IsNullOrWhiteSpace(previousBannerImagePath) ||
-            string.IsNullOrWhiteSpace(newBannerImagePath) ||
-            string.Equals(previousBannerImagePath, newBannerImagePath, StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        DeleteBannerImage(previousBannerImagePath);
-    }
-
-    private void DeleteBannerImage(string? bannerImagePath)
-    {
-        if (string.IsNullOrWhiteSpace(bannerImagePath))
-        {
-            return;
-        }
-
-        var relativePath = bannerImagePath.TrimStart('/', '\\').Replace('/', Path.DirectorySeparatorChar);
-        var fullPath = Path.GetFullPath(Path.Combine(_environment.WebRootPath, relativePath));
-        var bannerRoot = Path.GetFullPath(Path.Combine(_environment.WebRootPath, "images", "events", "banners"));
-
-        if (fullPath.StartsWith(bannerRoot, StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(fullPath))
-        {
-            System.IO.File.Delete(fullPath);
-        }
+        return Path.Combine(_environment.WebRootPath, "images", "events", "banners");
     }
 
     private int? GetCurrentAdminUserId()
@@ -582,4 +555,76 @@ public class EventsController : Controller
     }
 
     private sealed record UploadedFileMetadata(string Path, string ContentType, long Size, DateTime CreatedAtUtc);
+
+    private static IReadOnlyList<object> SearchFiles(string root, string webRoot, string? query, string[] allowedExtensions)
+    {
+        Directory.CreateDirectory(root);
+        var normalizedQuery = query?.Trim() ?? string.Empty;
+        if (normalizedQuery.Length == 1)
+        {
+            return [];
+        }
+
+        var files = Directory.EnumerateFiles(root)
+            .Where(file => allowedExtensions.Contains(Path.GetExtension(file), StringComparer.OrdinalIgnoreCase))
+            .Select(file => new FileInfo(file))
+            .Where(file => normalizedQuery.Length == 0 ||
+                           file.Name.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase));
+
+        files = normalizedQuery.Length == 0
+            ? files.OrderByDescending(file => file.CreationTimeUtc).Take(5)
+            : files.OrderBy(file => file.Name).Take(20);
+
+        return files
+            .Select(file => new
+            {
+                path = $"{webRoot}/{file.Name}",
+                fileName = file.Name,
+                contentType = GetContentType(file.Extension),
+                size = file.Length,
+                createdAtUtc = file.CreationTimeUtc
+            })
+            .Cast<object>()
+            .ToList();
+    }
+
+    private static UploadedFileMetadata? GetExistingFile(string root, string webRoot, string? path, string[] allowedExtensions)
+    {
+        var fileName = Path.GetFileName(path);
+        if (string.IsNullOrWhiteSpace(fileName) || !allowedExtensions.Contains(Path.GetExtension(fileName), StringComparer.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var fullPath = Path.GetFullPath(Path.Combine(root, fileName));
+        var fullRoot = Path.GetFullPath(root);
+        if (!fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase) || !System.IO.File.Exists(fullPath))
+        {
+            return null;
+        }
+
+        var file = new FileInfo(fullPath);
+        return new UploadedFileMetadata($"{webRoot}/{file.Name}", GetContentType(file.Extension), file.Length, file.CreationTimeUtc);
+    }
+
+    private static string GetAvailableFileName(string directory, string originalName, string fallbackExtension)
+    {
+        var stem = string.Concat(Path.GetFileNameWithoutExtension(originalName).Select(character =>
+            Path.GetInvalidFileNameChars().Contains(character) ? '-' : character)).Trim(' ', '.', '-');
+        stem = string.IsNullOrWhiteSpace(stem) ? "upload" : stem;
+        var extension = string.IsNullOrWhiteSpace(Path.GetExtension(originalName)) ? fallbackExtension : Path.GetExtension(originalName).ToLowerInvariant();
+        var fileName = $"{stem}{extension}";
+        var suffix = 2;
+        while (System.IO.File.Exists(Path.Combine(directory, fileName)))
+        {
+            fileName = $"{stem}-{suffix++}{extension}";
+        }
+
+        return fileName;
+    }
+
+    private static string GetContentType(string extension)
+    {
+        return extension.Equals(".webp", StringComparison.OrdinalIgnoreCase) ? "image/webp" : "image/png";
+    }
 }

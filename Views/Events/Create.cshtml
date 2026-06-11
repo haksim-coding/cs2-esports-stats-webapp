@@ -69,24 +69,47 @@ var lockOrganizer = (bool?)ViewBag.LockOrganizer == true;
         </div>
         <div class="col-12">
             <label class="form-label text-light" for="BannerImage">Event banner</label>
-            <label class="event-banner-dropzone" for="BannerImage">
-                <span class="event-banner-dropzone__icon"><i class="bi bi-image"></i></span>
-                <span class="event-banner-dropzone__copy">
-                    <span class="event-banner-dropzone__title">Upload PNG banner</span>
-                    <span class="event-banner-dropzone__meta" data-banner-file-name>Recommended wide artwork, 16:9 or wider. PNG only.</span>
-                </span>
-                <span class="event-banner-dropzone__action">Choose file</span>
-                <input asp-for="BannerImage" class="event-banner-dropzone__input" type="file" accept="image/png" />
-            </label>
-            <div class="event-banner-selection-preview" data-banner-preview hidden>
-                <div class="event-banner-selection-preview__media">
-                    <img alt="Selected banner preview" data-banner-preview-image />
+            <div class="upload-file-picker" data-create-file-picker data-search-url="/events/banner/search">
+                <label class="event-banner-dropzone" for="BannerImage">
+                    <span class="event-banner-dropzone__icon"><i class="bi bi-image"></i></span>
+                    <span class="event-banner-dropzone__copy">
+                        <span class="event-banner-dropzone__title">Upload PNG banner</span>
+                        <span class="event-banner-dropzone__meta" data-banner-file-name>Recommended wide artwork, 16:9 or wider. PNG only.</span>
+                    </span>
+                    <span class="event-banner-dropzone__action">Choose file</span>
+                    <input asp-for="BannerImage" class="event-banner-dropzone__input" type="file" accept="image/png" />
+                </label>
+                <input asp-for="ExistingBannerPath" type="hidden" data-existing-file-path />
+                <div class="event-banner-selection-preview upload-existing-selection" data-banner-preview hidden>
+                    <div class="event-banner-selection-preview__media">
+                        <img alt="Selected banner preview" data-banner-preview-image />
+                    </div>
+                    <div class="event-banner-selection-preview__body">
+                        <span class="event-banner-selection-preview__label" data-selection-label>Selected banner</span>
+                        <span class="event-banner-selection-preview__name" data-banner-preview-name></span>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary upload-existing-selection__clear" type="button" data-clear-existing-file hidden>
+                        <i class="bi bi-x-lg" aria-hidden="true"></i> Clear
+                    </button>
                 </div>
-                <div class="event-banner-selection-preview__body">
-                    <span class="event-banner-selection-preview__label">Selected banner</span>
-                    <span class="event-banner-selection-preview__name" data-banner-preview-name></span>
+                <div class="upload-file-search" data-upload-file-search>
+                    <div class="upload-file-search__heading">
+                        <div>
+                            <h3 class="upload-file-search__title">Or reuse an uploaded banner</h3>
+                            <p class="upload-file-search__hint">Showing 5 recent files. Type at least 2 characters to search more.</p>
+                        </div>
+                        <span class="upload-file-search__status" data-file-search-status aria-live="polite"></span>
+                    </div>
+                    <label class="upload-file-search__field">
+                        <span class="visually-hidden">Search for already uploaded event banners</span>
+                        <i class="bi bi-search" aria-hidden="true"></i>
+                        <input class="form-control cs2-form-control" type="search" placeholder="Search for already uploaded files..." autocomplete="off" data-file-search-input />
+                        <span class="spinner-border spinner-border-sm upload-file-search__spinner" role="status" aria-hidden="true" data-file-search-spinner hidden></span>
+                    </label>
+                    <div class="upload-file-search__results" data-file-search-results aria-live="polite"></div>
                 </div>
             </div>
+            <span asp-validation-for="ExistingBannerPath" class="text-danger small"></span>
             <span asp-validation-for="BannerImage" class="text-danger small"></span>
         </div>
         <div class="col-12">
@@ -109,14 +132,40 @@ var lockOrganizer = (bool?)ViewBag.LockOrganizer == true;
             const preview = document.querySelector('[data-banner-preview]');
             const previewImage = document.querySelector('[data-banner-preview-image]');
             const previewName = document.querySelector('[data-banner-preview-name]');
+            const picker = document.querySelector('[data-create-file-picker]');
+            const fileSearch = picker?.querySelector('[data-upload-file-search]');
+            const existingPath = picker?.querySelector('[data-existing-file-path]');
+            const clearExisting = picker?.querySelector('[data-clear-existing-file]');
+            const selectionLabel = picker?.querySelector('[data-selection-label]');
             let objectUrl;
 
-            if (!input || !fileName || !preview || !previewImage || !previewName) {
+            if (!input || !fileName || !preview || !previewImage || !previewName || !fileSearch || !existingPath || !clearExisting) {
                 return;
+            }
+
+            const showSearch = () => {
+                fileSearch.hidden = false;
+                fileSearch.classList.remove('is-leaving');
+            };
+            const hideSearch = () => {
+                fileSearch.classList.add('is-leaving');
+                window.setTimeout(() => fileSearch.hidden = true, 260);
+            };
+
+            if (existingPath.value) {
+                const existingName = existingPath.value.split('/').pop();
+                selectionLabel.textContent = 'Using uploaded banner';
+                previewName.textContent = existingName;
+                previewImage.src = existingPath.value;
+                preview.hidden = false;
+                clearExisting.hidden = false;
+                fileSearch.hidden = true;
             }
 
             input.addEventListener('change', () => {
                 const file = input.files && input.files[0];
+                existingPath.value = '';
+                selectionLabel.textContent = 'Selected banner';
 
                 if (objectUrl) {
                     URL.revokeObjectURL(objectUrl);
@@ -128,6 +177,8 @@ var lockOrganizer = (bool?)ViewBag.LockOrganizer == true;
                     preview.hidden = true;
                     previewImage.removeAttribute('src');
                     previewName.textContent = '';
+                    clearExisting.hidden = true;
+                    showSearch();
                     return;
                 }
 
@@ -136,7 +187,92 @@ var lockOrganizer = (bool?)ViewBag.LockOrganizer == true;
                 previewName.textContent = file.name;
                 previewImage.src = objectUrl;
                 preview.hidden = false;
+                clearExisting.hidden = false;
+                hideSearch();
             });
+
+            clearExisting.addEventListener('click', () => {
+                existingPath.value = '';
+                input.value = '';
+                fileName.textContent = 'Recommended wide artwork, 16:9 or wider. PNG only.';
+                preview.hidden = true;
+                previewImage.removeAttribute('src');
+                previewName.textContent = '';
+                clearExisting.hidden = true;
+                showSearch();
+            });
+
+            const results = fileSearch.querySelector('[data-file-search-results]');
+            const searchInput = fileSearch.querySelector('[data-file-search-input]');
+            const status = fileSearch.querySelector('[data-file-search-status]');
+            const spinner = fileSearch.querySelector('[data-file-search-spinner]');
+            let request;
+            let debounce;
+            const read = (item, ...keys) => keys.map(key => item?.[key]).find(value => value !== undefined && value !== null);
+            const showState = (title, copy) => {
+                results.innerHTML = '<div class="upload-file-search__empty"><i class="bi bi-search"></i><div><strong></strong><span></span></div></div>';
+                results.querySelector('strong').textContent = title;
+                results.querySelector('span').textContent = copy;
+            };
+            const render = payload => {
+                const source = payload?.items ?? payload?.results ?? payload?.files ?? payload;
+                const items = (Array.isArray(source) ? source : []).filter(Boolean);
+                status.textContent = items.length ? `${items.length} file${items.length === 1 ? '' : 's'}` : 'No files';
+                if (!items.length) {
+                    showState('No matching files', searchInput.value.trim() ? 'Try another file name.' : 'No uploaded banners are available yet.');
+                    return;
+                }
+                results.replaceChildren(...items.map(item => {
+                    const path = String(read(item, 'path', 'filePath') ?? '');
+                    const name = String(read(item, 'fileName', 'filename', 'name') ?? path);
+                    const card = document.createElement('article');
+                    card.className = 'upload-file-result';
+                    card.innerHTML = '<span class="upload-file-result__thumbnail upload-file-result__thumbnail--banner"><img alt="" loading="lazy" /></span><div class="upload-file-result__body"><strong class="upload-file-result__name"></strong></div><button class="btn btn-sm btn-outline-info upload-file-result__attach" type="button"><i class="bi bi-check2"></i> Select</button>';
+                    card.querySelector('img').src = path;
+                    card.querySelector('img').alt = `${name} preview`;
+                    card.querySelector('.upload-file-result__name').textContent = name;
+                    card.querySelector('button').addEventListener('click', () => {
+                        existingPath.value = path;
+                        input.value = '';
+                        fileName.textContent = 'Recommended wide artwork, 16:9 or wider. PNG only.';
+                        selectionLabel.textContent = 'Using uploaded banner';
+                        previewName.textContent = name;
+                        previewImage.src = path;
+                        preview.hidden = false;
+                        clearExisting.hidden = false;
+                        hideSearch();
+                    });
+                    return card;
+                }));
+            };
+            const search = async () => {
+                const query = searchInput.value.trim();
+                if (query.length === 1) {
+                    request?.abort();
+                    status.textContent = '2 characters minimum';
+                    showState('Keep typing', 'Enter one more character to search uploaded files.');
+                    return;
+                }
+                request?.abort();
+                const current = new AbortController();
+                request = current;
+                spinner.hidden = false;
+                status.textContent = query ? 'Searching...' : 'Recent files';
+                try {
+                    const response = await fetch(`${picker.dataset.searchUrl}?query=${encodeURIComponent(query)}`, { headers: { Accept: 'application/json' }, signal: current.signal });
+                    if (!response.ok) throw new Error();
+                    render(await response.json());
+                } catch (error) {
+                    if (error.name !== 'AbortError') showState('Search unavailable', 'Please try again.');
+                } finally {
+                    if (request === current) spinner.hidden = true;
+                }
+            };
+            searchInput.addEventListener('input', () => {
+                window.clearTimeout(debounce);
+                debounce = window.setTimeout(search, 250);
+            });
+            search();
         })();
     </script>
 }

@@ -88,7 +88,7 @@ public class EfForumRepository : IForumRepository
             RegisteredAtUtc = DateTime.UtcNow,
             LastActiveAtUtc = DateTime.UtcNow,
             IsPremiumMember = false,
-            Password = input.Password
+            Password = "[IDENTITY_ACCOUNT]"
         };
 
         _context.ForumUsers.Add(user);

@@ -40,6 +40,12 @@ public class Cs2ScopeDbContext : IdentityDbContext<AppUser>
             entity.ToTable("ForumUsers");
         });
 
+        modelBuilder.Entity<AppUser>(entity =>
+        {
+            entity.HasIndex(user => user.LegacyAdminUserId).IsUnique().HasFilter("[LegacyAdminUserId] IS NOT NULL");
+            entity.HasIndex(user => user.LegacyForumUserId).IsUnique().HasFilter("[LegacyForumUserId] IS NOT NULL");
+        });
+
         modelBuilder.Entity<AdminUser>(entity =>
         {
             entity.ToTable("AdminUsers");
@@ -77,46 +83,6 @@ public class Cs2ScopeDbContext : IdentityDbContext<AppUser>
                 .HasForeignKey(match => match.TeamBId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
-
-        modelBuilder.SharedTypeEntity<Dictionary<string, object>>("EventTeams").HasData(
-            new { TeamsId = 7, TournamentsId = 1 },
-            new { TeamsId = 8, TournamentsId = 1 },
-            new { TeamsId = 9, TournamentsId = 1 },
-            new { TeamsId = 10, TournamentsId = 1 },
-            new { TeamsId = 11, TournamentsId = 1 },
-            new { TeamsId = 12, TournamentsId = 1 },
-            new { TeamsId = 7, TournamentsId = 2 },
-            new { TeamsId = 8, TournamentsId = 2 },
-            new { TeamsId = 9, TournamentsId = 2 },
-            new { TeamsId = 10, TournamentsId = 2 },
-            new { TeamsId = 11, TournamentsId = 2 },
-            new { TeamsId = 12, TournamentsId = 2 },
-            new { TeamsId = 7, TournamentsId = 3 },
-            new { TeamsId = 8, TournamentsId = 3 },
-            new { TeamsId = 9, TournamentsId = 3 },
-            new { TeamsId = 10, TournamentsId = 3 },
-            new { TeamsId = 11, TournamentsId = 3 },
-            new { TeamsId = 12, TournamentsId = 3 },
-            new { TeamsId = 1, TournamentsId = 4 },
-            new { TeamsId = 4, TournamentsId = 4 },
-            new { TeamsId = 7, TournamentsId = 4 },
-            new { TeamsId = 8, TournamentsId = 4 },
-            new { TeamsId = 2, TournamentsId = 5 },
-            new { TeamsId = 3, TournamentsId = 5 },
-            new { TeamsId = 5, TournamentsId = 5 },
-            new { TeamsId = 7, TournamentsId = 5 },
-            new { TeamsId = 8, TournamentsId = 5 },
-            new { TeamsId = 1, TournamentsId = 6 },
-            new { TeamsId = 2, TournamentsId = 6 },
-            new { TeamsId = 4, TournamentsId = 6 },
-            new { TeamsId = 6, TournamentsId = 6 },
-            new { TeamsId = 7, TournamentsId = 6 },
-            new { TeamsId = 8, TournamentsId = 6 },
-            new { TeamsId = 3, TournamentsId = 7 },
-            new { TeamsId = 5, TournamentsId = 7 },
-            new { TeamsId = 6, TournamentsId = 7 },
-            new { TeamsId = 7, TournamentsId = 7 },
-            new { TeamsId = 8, TournamentsId = 7 });
 
         modelBuilder.Entity<ForumUser>(entity =>
         {
@@ -213,9 +179,5 @@ public class Cs2ScopeDbContext : IdentityDbContext<AppUser>
             entity.HasIndex(matchMap => new { matchMap.MatchId, matchMap.MapSequence }).IsUnique();
         });
 
-        modelBuilder.Entity<Team>().HasData(MatchSeedData.GetTeams());
-        modelBuilder.Entity<Player>().HasData(MatchSeedData.GetPlayers());
-        modelBuilder.Entity<Match>().HasData(MatchSeedData.GetMatches());
-        modelBuilder.Entity<MatchMap>().HasData(MatchSeedData.GetMatchMaps());
     }
 }

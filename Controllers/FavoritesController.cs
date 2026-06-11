@@ -1,5 +1,6 @@
 using cs2_esports.Repositories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace cs2_esports.Controllers;
 
@@ -15,6 +16,7 @@ public class FavoritesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize]
     public IActionResult ToggleTeam(int id, string? returnUrl = null)
     {
         var currentUser = GetCurrentForumUser();
@@ -29,6 +31,7 @@ public class FavoritesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize]
     public IActionResult TogglePlayer(int id, string? returnUrl = null)
     {
         var currentUser = GetCurrentForumUser();

@@ -12,4 +12,5 @@ public class AppUser : IdentityUser
     public DateTime? HiredAtUtc { get; set; }
     public DateTime? LastModerationActionAtUtc { get; set; }
     public int? LegacyAdminUserId { get; set; }
+    public int? LegacyForumUserId { get; set; }
 }

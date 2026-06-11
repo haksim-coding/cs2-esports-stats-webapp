@@ -1,0 +1,18 @@
+# Build output
+bin/
+obj/
+.tmp-build/
+.audit-build/
+
+# IDE and user-local files
+.vs/
+*.user
+*.suo
+
+# Logs and local tooling output
+*.log
+TestResults/
+
+# OS files
+.DS_Store
+Thumbs.db

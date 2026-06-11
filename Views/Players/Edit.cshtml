@@ -62,6 +62,7 @@
         </div>
         <div class="col-12">
             <label class="form-label text-light" for="PlayerImage">Player image</label>
+            <div class="upload-file-picker">
             <div class="player-image-upload-layout">
                 @if (!string.IsNullOrWhiteSpace(Model.CurrentImagePath))
                 {
@@ -72,15 +73,18 @@
                         </button>
                     </div>
                 }
-                <label class="event-banner-dropzone player-image-dropzone" for="PlayerImage" data-player-image-dropzone>
-                    <span class="event-banner-dropzone__icon"><i class="bi bi-image"></i></span>
-                    <span class="event-banner-dropzone__copy">
-                        <span class="event-banner-dropzone__title">Drop or upload PNG/WebP player image</span>
-                        <span class="event-banner-dropzone__meta" data-player-image-file-name>Recommended portrait artwork. PNG or WebP.</span>
-                    </span>
-                    <span class="event-banner-dropzone__action">Choose file</span>
-                    <input asp-for="PlayerImage" class="event-banner-dropzone__input player-image-dropzone__input" type="file" accept="image/png,image/webp" />
-                </label>
+                <div id="playerImageDropzone"
+                     class="event-banner-dropzone event-banner-dropzone--async player-image-dropzone dropzone"
+                     data-upload-url="/players/@Model.Id/image">
+                    <div class="dz-message event-banner-dropzone__message">
+                        <span class="event-banner-dropzone__icon"><i class="bi bi-cloud-arrow-up"></i></span>
+                        <span class="event-banner-dropzone__copy">
+                            <span class="event-banner-dropzone__title">Drop PNG/WebP player image here</span>
+                            <span class="event-banner-dropzone__meta">or click to upload. One portrait image, max 4 MB.</span>
+                        </span>
+                        <span class="event-banner-dropzone__action">Choose file</span>
+                    </div>
+                </div>
             </div>
             <div class="event-banner-selection-preview player-image-selection-preview" data-player-image-preview hidden>
                 <div class="event-banner-selection-preview__media player-image-selection-preview__media">
@@ -91,28 +95,32 @@
                     <span class="event-banner-selection-preview__name" data-player-image-preview-name></span>
                 </div>
             </div>
-            <div class="upload-file-search mt-3"
-                 data-upload-file-search
-                 data-search-url="/players/@Model.Id/image/search"
-                 data-file-kind="player image">
-                <div class="upload-file-search__heading">
-                    <div>
-                        <h3 class="upload-file-search__title">Uploaded file</h3>
-                        <p class="upload-file-search__hint">Search the current image by filename, path, or metadata.</p>
+            @if (string.IsNullOrWhiteSpace(Model.CurrentImagePath))
+            {
+                <div class="upload-file-search"
+                     data-upload-file-search
+                     data-search-url="/players/image/search"
+                     data-attach-url="/players/@Model.Id/image/attach">
+                    <div class="upload-file-search__heading">
+                        <div>
+                            <h3 class="upload-file-search__title">Reuse an uploaded player image</h3>
+                            <p class="upload-file-search__hint">Showing 5 recent files. Type at least 2 characters to search more.</p>
+                        </div>
+                        <span class="upload-file-search__status" data-file-search-status aria-live="polite"></span>
                     </div>
-                    <span class="upload-file-search__status" data-file-search-status aria-live="polite">Loading...</span>
+                    <label class="upload-file-search__field">
+                        <span class="visually-hidden">Search for already uploaded player images</span>
+                        <i class="bi bi-search" aria-hidden="true"></i>
+                        <input class="form-control cs2-form-control"
+                               type="search"
+                               placeholder="Search for already uploaded files..."
+                               autocomplete="off"
+                               data-file-search-input />
+                        <span class="spinner-border spinner-border-sm upload-file-search__spinner" role="status" aria-hidden="true" data-file-search-spinner hidden></span>
+                    </label>
+                    <div class="upload-file-search__results" data-file-search-results aria-live="polite"></div>
                 </div>
-                <label class="upload-file-search__field">
-                    <span class="visually-hidden">Search uploaded player image</span>
-                    <i class="bi bi-search" aria-hidden="true"></i>
-                    <input class="form-control cs2-form-control"
-                           type="search"
-                           placeholder="Search uploaded player image..."
-                           autocomplete="off"
-                           data-file-search-input />
-                    <span class="spinner-border spinner-border-sm upload-file-search__spinner" role="status" aria-hidden="true" data-file-search-spinner hidden></span>
-                </label>
-                <div class="upload-file-search__results" data-file-search-results aria-live="polite"></div>
+            }
             </div>
             <span asp-validation-for="PlayerImage" class="text-danger small"></span>
         </div>
@@ -126,11 +134,38 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/dropzone.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/dropzone.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script>
         (() => {
             const deleteButton = document.querySelector('[data-delete-player-image-url]');
             const token = document.querySelector('#playerEditForm input[name="__RequestVerificationToken"]')?.value;
             const fileSearch = document.querySelector('[data-upload-file-search]');
+            const dropzoneElement = document.getElementById('playerImageDropzone');
+
+            if (window.Dropzone && dropzoneElement && token) {
+                Dropzone.autoDiscover = false;
+                new Dropzone(dropzoneElement, {
+                    url: dropzoneElement.dataset.uploadUrl,
+                    paramName: 'file',
+                    maxFiles: 1,
+                    maxFilesize: 4,
+                    acceptedFiles: 'image/png,image/webp,.png,.webp',
+                    addRemoveLinks: true,
+                    headers: { RequestVerificationToken: token },
+                    init: function () {
+                        this.on('success', () => window.location.reload());
+                        this.on('maxfilesexceeded', file => this.removeFile(file));
+                        this.on('error', (file, response) => {
+                            const message = typeof response === 'string'
+                                ? response
+                                : response?.message || 'Upload failed. Please choose a valid PNG or WebP image.';
+                            const errorNode = file.previewElement?.querySelector('[data-dz-errormessage]');
+                            if (errorNode) errorNode.textContent = message;
+                        });
+                    }
+                });
+            }
 
             deleteButton?.addEventListener('click', async () => {
                 if (!token || !confirm('Delete this player image?')) {
@@ -145,6 +180,7 @@
                 });
 
                 if (response.ok) {
+                    sessionStorage.setItem('player-image-search-enter', '1');
                     window.location.reload();
                     return;
                 }
@@ -191,19 +227,20 @@
                     status.textContent = items.length ? `${items.length} file${items.length === 1 ? '' : 's'}` : 'No files';
 
                     if (!items.length) {
-                        showState(query ? 'No matching file' : 'No image uploaded', query ? 'Try another filename or metadata value.' : 'Upload an image to see its metadata here.', query ? 'bi-search' : 'bi-cloud-arrow-up');
+                        showState(query ? 'No matching files' : 'No uploaded player images found', query ? 'Try another file name.' : 'Files already stored in the player image folder will appear here.', query ? 'bi-search' : 'bi-folder2-open');
                         return;
                     }
 
                     results.replaceChildren(...items.map(item => {
-                        const path = String(read(item, 'fileName', 'filename', 'name', 'path', 'filePath', 'imagePath') ?? 'Player image');
+                        const path = String(read(item, 'path', 'filePath', 'imagePath') ?? '');
+                        const name = String(read(item, 'fileName', 'filename', 'name') ?? path ?? 'Player image');
                         const contentType = String(read(item, 'contentType', 'mimeType', 'type') ?? 'Content type unavailable');
                         const size = read(item, 'sizeBytes', 'fileSize', 'size', 'length');
                         const created = read(item, 'createdAtUtc', 'createdUtc', 'createdAt', 'creationDate', 'uploadedAtUtc');
                         const card = document.createElement('article');
                         card.className = 'upload-file-result';
                         card.innerHTML = `
-                            <span class="upload-file-result__icon"><i class="bi bi-file-earmark-image" aria-hidden="true"></i></span>
+                            <span class="upload-file-result__thumbnail"><img alt="" loading="lazy" /></span>
                             <div class="upload-file-result__body">
                                 <strong class="upload-file-result__name"></strong>
                                 <div class="upload-file-result__meta">
@@ -211,30 +248,63 @@
                                     <span><i class="bi bi-hdd"></i></span>
                                     <span><i class="bi bi-calendar3"></i></span>
                                 </div>
-                            </div>`;
-                        card.querySelector('.upload-file-result__name').textContent = path;
+                            </div>
+                            <button class="btn btn-sm btn-outline-info upload-file-result__attach" type="button">
+                                <i class="bi bi-link-45deg" aria-hidden="true"></i> Attach
+                            </button>`;
+                        card.querySelector('.upload-file-result__name').textContent = name;
+                        card.querySelector('img').src = path;
+                        card.querySelector('img').alt = `${name} preview`;
                         const meta = card.querySelectorAll('.upload-file-result__meta span');
                         meta[0].append(document.createTextNode(contentType));
                         meta[1].append(document.createTextNode(formatSize(size)));
                         meta[2].append(document.createTextNode(formatDate(created)));
+                        card.querySelector('.upload-file-result__attach').addEventListener('click', async event => {
+                            const button = event.currentTarget;
+                            button.disabled = true;
+                            button.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Attaching';
+                            try {
+                                const body = new FormData();
+                                body.append('path', String(read(item, 'path', 'filePath') ?? ''));
+                                const response = await fetch(fileSearch.dataset.attachUrl, {
+                                    method: 'POST',
+                                    headers: { RequestVerificationToken: token },
+                                    body
+                                });
+                                if (!response.ok) throw new Error();
+                                fileSearch.classList.add('is-leaving');
+                                window.setTimeout(() => window.location.reload(), 280);
+                            } catch {
+                                button.disabled = false;
+                                button.innerHTML = '<i class="bi bi-link-45deg" aria-hidden="true"></i> Attach';
+                                status.textContent = 'Could not attach';
+                            }
+                        });
                         return card;
                     }));
                 };
                 const search = async () => {
+                    const query = input.value.trim();
+                    if (query.length === 1) {
+                        request?.abort();
+                        status.textContent = '2 characters minimum';
+                        showState('Keep typing', 'Enter one more character to search uploaded files.', 'bi-keyboard');
+                        return;
+                    }
                     request?.abort();
                     const currentRequest = new AbortController();
                     request = currentRequest;
                     spinner.hidden = false;
                     status.textContent = 'Searching...';
                     try {
-                        const url = `${fileSearch.dataset.searchUrl}?query=${encodeURIComponent(input.value.trim())}`;
+                        const url = `${fileSearch.dataset.searchUrl}?query=${encodeURIComponent(query)}`;
                         const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: currentRequest.signal });
                         if (!response.ok) throw new Error();
                         render(await response.json());
                     } catch (error) {
                         if (error.name !== 'AbortError') {
                             status.textContent = 'Unavailable';
-                            showState('Could not load file metadata', 'Please try the search again.', 'bi-exclamation-circle');
+                            showState('Could not search uploaded files', 'Please try the search again.', 'bi-exclamation-circle');
                         }
                     } finally {
                         if (request === currentRequest) spinner.hidden = true;

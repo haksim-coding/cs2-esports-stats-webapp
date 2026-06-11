@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace cs2_esports.Models;
 
@@ -37,6 +38,9 @@ public class PlayerCreateModel
 
     [Display(Name = "Player image")]
     public IFormFile? PlayerImage { get; set; }
+
+    [ValidateNever]
+    public string? ExistingImagePath { get; set; }
 
     [Display(Name = "Current Team")]
     public int? TeamId { get; set; }

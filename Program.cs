@@ -40,18 +40,10 @@ builder.Services.AddScoped<IForumRepository, EfForumRepository>();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+if (!app.Environment.IsEnvironment("Testing"))
 {
-    await IdentitySeeder.SeedAsync(scope.ServiceProvider);
-    var dbContext = scope.ServiceProvider.GetRequiredService<Cs2ScopeDbContext>();
-    await EventCalendarSeeder.SeedAsync(dbContext);
-    app.Logger.LogInformation(
-        "Database seeded with {TeamCount} teams, {EventCount} events, {MatchCount} matches, {ForumCount} forums and {PlayerCount} players.",
-        await dbContext.Teams.CountAsync(),
-        await dbContext.Tournaments.CountAsync(),
-        await dbContext.Matches.CountAsync(),
-        await dbContext.Forums.CountAsync(),
-        await dbContext.Players.CountAsync());
+    using var scope = app.Services.CreateScope();
+    await IdentitySynchronizer.SynchronizeAsync(scope.ServiceProvider);
 }
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -73,26 +65,52 @@ app.UseRequestLocalization(new RequestLocalizationOptions
 app.UseSession();
 
 app.UseAuthentication();
-app.Use(async (context, next) =>
+if (!app.Environment.IsEnvironment("Testing"))
 {
-    var hasAdminSession = string.Equals(context.Session.GetString(AuthSessionKeys.UserType), AuthSessionKeys.AdminUserType, StringComparison.Ordinal) &&
-        context.Session.GetInt32(AuthSessionKeys.AdminUserId).HasValue;
-
-    if (EventRoleHelper.IsEventAdmin(context.User) && !hasAdminSession)
+    app.Use(async (context, next) =>
     {
-        await context.SignOutAsync(IdentityConstants.ApplicationScheme);
-        context.User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity());
-    }
+        var dbContext = context.RequestServices.GetRequiredService<Cs2ScopeDbContext>();
+        var hasAdminSession = string.Equals(context.Session.GetString(AuthSessionKeys.UserType), AuthSessionKeys.AdminUserType, StringComparison.Ordinal) &&
+            context.Session.GetInt32(AuthSessionKeys.AdminUserId).HasValue;
 
-    if (string.Equals(context.Session.GetString(AuthSessionKeys.UserType), AuthSessionKeys.AdminUserType, StringComparison.Ordinal) &&
-        !EventRoleHelper.IsEventAdmin(context.User))
-    {
-        context.Session.Remove(AuthSessionKeys.AdminUserId);
-        context.Session.Remove(AuthSessionKeys.UserType);
-    }
+        if (EventRoleHelper.IsEventAdmin(context.User) && !hasAdminSession)
+        {
+            await context.SignOutAsync(IdentityConstants.ApplicationScheme);
+            context.User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity());
+        }
 
-    await next();
-});
+        if (string.Equals(context.Session.GetString(AuthSessionKeys.UserType), AuthSessionKeys.AdminUserType, StringComparison.Ordinal) &&
+            !EventRoleHelper.IsEventAdmin(context.User))
+        {
+            context.Session.Remove(AuthSessionKeys.AdminUserId);
+            context.Session.Remove(AuthSessionKeys.UserType);
+        }
+
+        var identityUserId = context.User.Identity?.IsAuthenticated == true
+            ? context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            : null;
+        var linkedForumUserId = !string.IsNullOrWhiteSpace(identityUserId)
+            ? await dbContext.Users
+                .Where(user => user.Id == identityUserId && user.LegacyAdminUserId == null)
+                .Select(user => user.LegacyForumUserId)
+                .FirstOrDefaultAsync()
+            : null;
+
+        if (linkedForumUserId.HasValue)
+        {
+            context.Session.Remove(AuthSessionKeys.AdminUserId);
+            context.Session.SetInt32(AuthSessionKeys.ForumUserId, linkedForumUserId.Value);
+            context.Session.SetString(AuthSessionKeys.UserType, AuthSessionKeys.ForumUserType);
+        }
+        else if (string.Equals(context.Session.GetString(AuthSessionKeys.UserType), AuthSessionKeys.ForumUserType, StringComparison.Ordinal))
+        {
+            context.Session.Remove(AuthSessionKeys.ForumUserId);
+            context.Session.Remove(AuthSessionKeys.UserType);
+        }
+
+        await next();
+    });
+}
 app.UseAuthorization();
 
 app.MapStaticAssets();
@@ -125,3 +143,5 @@ app.MapControllerRoute(
 
 
 app.Run();
+
+public partial class Program;

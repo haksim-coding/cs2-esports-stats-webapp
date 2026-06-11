@@ -146,11 +146,6 @@ public class EventsController : ControllerBase
             return Forbid();
         }
 
-        if ((eventItem.Teams?.Any() ?? false) || (eventItem.Matches?.Any() ?? false) || (eventItem.ForumThreads?.Any() ?? false))
-        {
-            return Conflict(new { message = "This event cannot be deleted because it still has teams, matches, or forum threads attached." });
-        }
-
         _eventRepository.Delete(id);
         return NoContent();
     }

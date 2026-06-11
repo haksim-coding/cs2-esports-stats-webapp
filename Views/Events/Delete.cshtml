@@ -29,7 +29,13 @@
         <dd class="col-sm-9 text-muted">@Model.StartDateUtc.ToLocalTime().ToString("MMM dd, yyyy") - @Model.EndDateUtc.ToLocalTime().ToString("MMM dd, yyyy")</dd>
         <dt class="col-sm-3 text-light">Teams</dt>
         <dd class="col-sm-9 text-muted">@(Model.Teams?.Count ?? 0)</dd>
+        <dt class="col-sm-3 text-light">Matches</dt>
+        <dd class="col-sm-9 text-muted">@(Model.Matches?.Count ?? 0)</dd>
     </dl>
+
+    <p class="alert alert-warning">
+        Deleting this event will permanently delete its matches and disconnect its teams.
+    </p>
 
     <form action="/events/delete/@Model.Id" method="post" class="d-flex gap-2">
         @Html.AntiForgeryToken()

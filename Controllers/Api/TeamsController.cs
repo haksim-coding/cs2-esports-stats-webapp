@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace cs2_esports.Controllers.Api;
 
 [Route("api/teams")]
+[Route("api/team")]
 [ApiController]
 public class TeamsController : ControllerBase
 {

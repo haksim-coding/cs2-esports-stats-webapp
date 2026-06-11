@@ -68,10 +68,23 @@ public class EfEventRepository : IEventRepository
 
     public void Delete(int id)
     {
-        var eventItem = _context.Tournaments.FirstOrDefault(tournament => tournament.Id == id);
+        var eventItem = _context.Tournaments
+            .Include(tournament => tournament.Teams)
+            .Include(tournament => tournament.Matches)
+            .Include(tournament => tournament.ForumThreads)
+            .FirstOrDefault(tournament => tournament.Id == id);
+
         if (eventItem is null)
         {
             return;
+        }
+
+        eventItem.Teams.Clear();
+        _context.Matches.RemoveRange(eventItem.Matches);
+        foreach (var forumThread in eventItem.ForumThreads)
+        {
+            forumThread.Event = null;
+            forumThread.TournamentId = null;
         }
 
         _context.Tournaments.Remove(eventItem);

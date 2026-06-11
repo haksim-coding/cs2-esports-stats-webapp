@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using cs2_esports.Helpers;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
 
 namespace cs2_esports.Controllers;
 
@@ -48,6 +49,17 @@ public class AuthController : Controller
             ClearAuthenticationSession();
             await _signInManager.SignInAsync(identityUser, isPersistent: false);
 
+            if (identityUser.LegacyForumUserId.HasValue)
+            {
+                SetAuthenticatedForumUser(identityUser.LegacyForumUserId.Value);
+                var forumUser = _forumRepository.GetForumUserById(identityUser.LegacyForumUserId.Value);
+                if (forumUser is not null)
+                {
+                    forumUser.LastActiveAtUtc = DateTime.UtcNow;
+                    _dbContext.SaveChanges();
+                }
+            }
+
             var legacyAdminUserId = identityUser.LegacyAdminUserId
                 ?? _dbContext.AdminUsers
                     .Where(user => user.Username == identityUser.UserName)
@@ -60,16 +72,6 @@ public class AuthController : Controller
             }
 
             TempData["LoginMessage"] = $"Welcome back, {identityUser.DisplayName}.";
-            return LocalRedirect(returnUrl ?? Url.Action("Index", "Home")!);
-        }
-
-        var forumUser = _forumRepository.GetForumUserByUsernameOrEmail(input.Username);
-        if (forumUser is not null && string.Equals(forumUser.Password, input.Password, StringComparison.Ordinal))
-        {
-            SetAuthenticatedForumUser(forumUser.Id);
-            forumUser.LastActiveAtUtc = DateTime.UtcNow;
-
-            TempData["LoginMessage"] = $"Welcome back, {forumUser.DisplayName}.";
             return LocalRedirect(returnUrl ?? Url.Action("Index", "Home")!);
         }
 
@@ -110,10 +112,18 @@ public class AuthController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Register(ForumRegisterInputModel input, string? returnUrl = null)
+    public async Task<IActionResult> Register(ForumRegisterInputModel input, string? returnUrl = null)
     {
         if (!ModelState.IsValid)
         {
+            ViewData["ReturnUrl"] = returnUrl;
+            return View(input);
+        }
+
+        if (await _userManager.FindByNameAsync(input.Username.Trim()) is not null ||
+            await _userManager.FindByEmailAsync(input.Email.Trim()) is not null)
+        {
+            ModelState.AddModelError(string.Empty, "Username or email is already in use.");
             ViewData["ReturnUrl"] = returnUrl;
             return View(input);
         }
@@ -126,6 +136,31 @@ public class AuthController : Controller
             return View(input);
         }
 
+        var identityUser = new AppUser
+        {
+            UserName = createdUser.Username,
+            Email = createdUser.Email,
+            DisplayName = createdUser.DisplayName,
+            Bio = createdUser.Bio,
+            CountryCode = createdUser.CountryCode,
+            RegisteredAtUtc = createdUser.RegisteredAtUtc,
+            IsSuspended = createdUser.IsSuspended,
+            LegacyForumUserId = createdUser.Id,
+            EmailConfirmed = true
+        };
+        var identityResult = await _userManager.CreateAsync(identityUser, input.Password);
+        if (!identityResult.Succeeded)
+        {
+            _forumRepository.DeleteForumUser(createdUser.Id);
+            foreach (var error in identityResult.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+            ViewData["ReturnUrl"] = returnUrl;
+            return View(input);
+        }
+
+        await _signInManager.SignInAsync(identityUser, isPersistent: false);
         SetAuthenticatedForumUser(createdUser.Id);
         TempData["LoginMessage"] = $"Welcome, {createdUser.DisplayName}. Your account is ready.";
 
@@ -142,6 +177,7 @@ public class AuthController : Controller
     }
 
     [HttpGet]
+    [Authorize]
     public IActionResult Profile()
     {
         var currentUser = GetCurrentForumUser();
@@ -161,6 +197,7 @@ public class AuthController : Controller
     }
 
     [HttpGet]
+    [Authorize]
     public IActionResult EditProfile()
     {
         var currentUser = GetCurrentForumUser();
@@ -178,7 +215,8 @@ public class AuthController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult EditProfile(ForumUserEditProfileInputModel input)
+    [Authorize]
+    public async Task<IActionResult> EditProfile(ForumUserEditProfileInputModel input)
     {
         var currentUser = GetCurrentForumUser();
         if (currentUser is null)
@@ -191,11 +229,44 @@ public class AuthController : Controller
             return View(input);
         }
 
-        if (!_forumRepository.UpdateForumUserProfile(currentUser.Id, input))
+        var identityUser = await _userManager.GetUserAsync(User);
+        if (identityUser is null || identityUser.LegacyForumUserId != currentUser.Id)
+        {
+            return Forbid();
+        }
+
+        var requestedUsername = input.Username.Trim();
+        var identityUserWithUsername = await _userManager.FindByNameAsync(requestedUsername);
+        if (identityUserWithUsername is not null && identityUserWithUsername.Id != identityUser.Id)
         {
             ModelState.AddModelError(nameof(input.Username), "That username is already in use.");
             return View(input);
         }
+
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+        if (!_forumRepository.UpdateForumUserProfile(currentUser.Id, input))
+        {
+            await transaction.RollbackAsync();
+            ModelState.AddModelError(nameof(input.Username), "That username is already in use.");
+            return View(input);
+        }
+
+        identityUser.UserName = requestedUsername;
+        identityUser.DisplayName = currentUser.DisplayName;
+        identityUser.Bio = input.Bio.Trim();
+        var updateResult = await _userManager.UpdateAsync(identityUser);
+        if (!updateResult.Succeeded)
+        {
+            await transaction.RollbackAsync();
+            foreach (var error in updateResult.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+            return View(input);
+        }
+
+        await transaction.CommitAsync();
+        await _signInManager.RefreshSignInAsync(identityUser);
 
         TempData["ProfileMessage"] = "Profile updated.";
         return RedirectToAction(nameof(Profile));
@@ -203,12 +274,19 @@ public class AuthController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult DeleteAccount()
+    [Authorize]
+    public async Task<IActionResult> DeleteAccount()
     {
         var currentUser = GetCurrentForumUser();
         if (currentUser is null)
         {
             return RedirectToAction(nameof(Login));
+        }
+
+        var identityUser = await _userManager.GetUserAsync(User);
+        if (identityUser is null || identityUser.LegacyForumUserId != currentUser.Id)
+        {
+            return Forbid();
         }
 
         if (!_forumRepository.DeleteForumUser(currentUser.Id))
@@ -217,6 +295,8 @@ public class AuthController : Controller
             return RedirectToAction(nameof(Profile));
         }
 
+        await _userManager.DeleteAsync(identityUser);
+        await _signInManager.SignOutAsync();
         ClearAuthenticationSession();
         TempData["LoginMessage"] = "Your account has been deleted.";
         return RedirectToAction("Index", "Home");

@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="cs2-esports.csproj" />
+  <Project Path="tests/cs2-esports.IntegrationTests/cs2-esports.IntegrationTests.csproj" />
 </Solution>

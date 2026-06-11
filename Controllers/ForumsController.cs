@@ -2,6 +2,7 @@ using cs2_esports.Models;
 using cs2_esports.Repositories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using cs2_esports.Helpers;
+using Microsoft.AspNetCore.Authorization;
 
 namespace cs2_esports.Controllers;
 
@@ -33,6 +34,7 @@ public class ForumsController : Controller
     }
 
     [HttpGet]
+    [Authorize]
     public IActionResult Create()
     {
         if (IsAdminLoggedIn())
@@ -51,6 +53,7 @@ public class ForumsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize]
     public IActionResult Create(ForumCreateInputModel input)
     {
         if (IsAdminLoggedIn())
@@ -87,6 +90,7 @@ public class ForumsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize]
     public IActionResult Comment(ForumCommentInputModel input)
     {
         if (IsAdminLoggedIn())
