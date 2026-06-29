@@ -46,6 +46,23 @@ public static class TeamLogoResolver
                 case "spirit":
                 case "teamspirit":
                     return "~/images/teams/Spirit.svg";
+                case "themongolz":
+                case "mongolz":
+                case "mglz":
+                    return "~/images/teams/the-mongolz.png";
+                case "teamliquid":
+                case "liquid":
+                case "tl":
+                    return "~/images/teams/Team_Liquid.svg";
+                case "aurora":
+                case "aur":
+                    return "~/images/teams/aurora.svg";
+                case "heroic":
+                case "hero":
+                    return "~/images/teams/heroic.png";
+                case "furia":
+                case "fur":
+                    return "~/images/teams/furia.svg";
             }
         }
 

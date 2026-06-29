@@ -20,17 +20,23 @@
 
         <div class="col-md-4">
             <label asp-for="EventId" class="form-label text-light"></label>
-            <select asp-for="EventId" class="form-select cs2-input" asp-items="ViewBag.Events"></select>
+            <select asp-for="EventId" class="form-select cs2-input" asp-items="ViewBag.Events" data-match-event-select data-event-teams-url="@Url.Action("EventTeams", "Matches")">
+                <option value="">Select an event</option>
+            </select>
             <span asp-validation-for="EventId" class="text-danger small"></span>
         </div>
         <div class="col-md-4">
             <label asp-for="TeamAId" class="form-label text-light"></label>
-            <select asp-for="TeamAId" class="form-select cs2-input" asp-items="ViewBag.TeamOptions"></select>
+            <select asp-for="TeamAId" class="form-select cs2-input" asp-items="ViewBag.TeamOptions" data-match-team-select>
+                <option value="">Select Team A</option>
+            </select>
             <span asp-validation-for="TeamAId" class="text-danger small"></span>
         </div>
         <div class="col-md-4">
             <label asp-for="TeamBId" class="form-label text-light"></label>
-            <select asp-for="TeamBId" class="form-select cs2-input" asp-items="ViewBag.TeamOptions"></select>
+            <select asp-for="TeamBId" class="form-select cs2-input" asp-items="ViewBag.TeamOptions" data-match-team-select>
+                <option value="">Select Team B</option>
+            </select>
             <span asp-validation-for="TeamBId" class="text-danger small"></span>
         </div>
         <div class="col-md-4">
@@ -46,6 +52,7 @@
         </div>
         <div class="col-12">
             <partial name="_MatchMapEditor" model="Model" />
+            <div class="form-text text-secondary">Map results are only required when a finished time is set.</div>
         </div>
         <div class="col-md-4">
             <label class="form-label text-light">Finished At</label>

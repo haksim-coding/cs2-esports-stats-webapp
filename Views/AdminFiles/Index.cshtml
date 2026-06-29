@@ -32,6 +32,7 @@
         <div class="admin-files-summary" aria-label="File totals">
             <span><strong>@Model.EventFiles.Count</strong> event files</span>
             <span><strong>@Model.PlayerFiles.Count</strong> player files</span>
+            <span><strong>@Model.LogFiles.Count</strong> audit logs</span>
         </div>
     </header>
 
@@ -97,4 +98,44 @@
             }
         </section>
     }
+
+    <section class="admin-files-section" aria-labelledby="audit-log-files">
+        <div class="admin-files-section__heading">
+            <div>
+                <h2 id="audit-log-files">Audit logs</h2>
+                <p>Daily JSONL records for every state-changing MVC and API action.</p>
+            </div>
+            <span class="admin-files-count">@Model.LogFiles.Count files</span>
+        </div>
+
+        @if (Model.LogFiles.Count == 0)
+        {
+            <div class="admin-files-empty">
+                <i class="bi bi-journal-text"></i>
+                <div><strong>No audit logs yet</strong><span>The first POST, PUT, PATCH, or DELETE action will create one.</span></div>
+            </div>
+        }
+        else
+        {
+            <div class="admin-files-grid">
+                @foreach (var file in Model.LogFiles)
+                {
+                    <article class="admin-file-card admin-log-card">
+                        <div class="admin-log-card__icon" aria-hidden="true"><i class="bi bi-filetype-json"></i></div>
+                        <div class="admin-file-card__body">
+                            <h3 title="@file.FileName">@file.FileName</h3>
+                            <div class="admin-file-card__meta">
+                                <span><i class="bi bi-braces"></i>application/x-ndjson</span>
+                                <span><i class="bi bi-hdd"></i>@FormatSize(file.FileSize)</span>
+                                <span><i class="bi bi-calendar3"></i>@file.LastModifiedAtUtc.ToLocalTime().ToString("g")</span>
+                            </div>
+                        </div>
+                        <a class="btn btn-outline-info" asp-action="OpenLog" asp-route-fileName="@file.FileName" target="_blank" rel="noopener">
+                            <i class="bi bi-box-arrow-up-right"></i> Open
+                        </a>
+                    </article>
+                }
+            </div>
+        }
+    </section>
 </div>

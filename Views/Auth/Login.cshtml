@@ -15,7 +15,31 @@
                 <div class="auth-panel-accent"></div>
             </div>
 
-            <form asp-action="Login" method="post" class="p-4 p-md-5">
+            <div class="auth-social p-4 p-md-5 pb-md-4">
+                <div class="auth-social-heading">
+                    <span class="auth-social-kicker">Quick access</span>
+                    <p class="text-muted small mb-0">Continue with your preferred account.</p>
+                </div>
+
+                <div class="auth-social-actions">
+                    <form asp-controller="Auth" asp-action="ExternalLogin" method="post">
+                        <input type="hidden" name="provider" value="Google" />
+                        <input type="hidden" name="returnUrl" value="@(ViewData["ReturnUrl"] ?? string.Empty)" />
+                        <button type="submit" class="auth-social-button auth-social-button--google">
+                            <span class="auth-social-icon auth-social-icon--google" aria-hidden="true">G</span>
+                            <span>Continue with Google</span>
+                        </button>
+                    </form>
+                </div>
+
+                <p class="auth-social-note mb-0">First time here? Social sign-in creates your CS2Scope forum account.</p>
+            </div>
+
+            <div class="auth-method-divider px-4 px-md-5" aria-hidden="true">
+                <span>or use your credentials</span>
+            </div>
+
+            <form asp-action="Login" method="post" class="p-4 p-md-5 pt-md-4">
                 <input type="hidden" name="returnUrl" value="@(ViewData["ReturnUrl"] ?? string.Empty)" />
                 <div asp-validation-summary="ModelOnly" class="text-danger mb-4 small fw-semibold auth-validation"></div>
                 

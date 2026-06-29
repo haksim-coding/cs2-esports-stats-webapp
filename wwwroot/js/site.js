@@ -390,6 +390,65 @@ $(function () {
         syncSeriesScore();
     });
 
+    $('[data-match-event-select]').each(function () {
+        const $eventSelect = $(this);
+        const $form = $eventSelect.closest('form');
+        const $teamSelects = $form.find('[data-match-team-select]');
+        const eventTeamsUrl = $eventSelect.data('eventTeamsUrl');
+        let activeTeamRequest = null;
+
+        const setTeamOptions = (teams, selectedIds) => {
+            $teamSelects.each(function (index) {
+                const $select = $(this);
+                const label = index === 0 ? 'Select Team A' : 'Select Team B';
+                $select.empty().append(new Option(label, ''));
+
+                teams.forEach(team => {
+                    $select.append(new Option(team.name, team.id));
+                });
+
+                const selectedId = selectedIds[index];
+                if (selectedId && teams.some(team => String(team.id) === selectedId)) {
+                    $select.val(selectedId);
+                }
+
+                $select.prop('disabled', teams.length === 0);
+            });
+        };
+
+        const loadEventTeams = preserveSelection => {
+            const eventId = $eventSelect.val();
+            const selectedIds = preserveSelection
+                ? $teamSelects.map((_, select) => String($(select).val() || '')).get()
+                : ['', ''];
+
+            if (activeTeamRequest) {
+                activeTeamRequest.abort();
+                activeTeamRequest = null;
+            }
+
+            if (!eventId) {
+                setTeamOptions([], selectedIds);
+                return;
+            }
+
+            $teamSelects.prop('disabled', true);
+            activeTeamRequest = $.getJSON(eventTeamsUrl, { eventId })
+                .done(teams => setTeamOptions(teams, selectedIds))
+                .fail((_, status) => {
+                    if (status !== 'abort') {
+                        setTeamOptions([], selectedIds);
+                    }
+                })
+                .always(() => {
+                    activeTeamRequest = null;
+                });
+        };
+
+        $eventSelect.on('change', () => loadEventTeams(false));
+        loadEventTeams(true);
+    });
+
     const minSearchLength = 2;
 
     $('[data-date-picker]').each(function () {
@@ -737,7 +796,7 @@ $(function () {
             $spinner.addClass('d-none');
         };
 
-        const addTeam = (teamId, teamText, logoPath, badgeText, event) => {
+        const addTeam = (teamId, teamText, logoPath, badgeText, event, silent) => {
             const selectedIds = getSelectedIds();
             if (selectedIds.includes(teamId)) {
                 $status.text(`${teamText} is already selected.`);
@@ -778,7 +837,9 @@ $(function () {
 
             $empty.addClass('d-none');
             $selected.append(card);
-            spawnFloatingNotice(`+ ${teamText}`, event, 'add');
+            if (!silent) {
+                spawnFloatingNotice(`+ ${teamText}`, event, 'add');
+            }
             $input.val('');
             closeResults();
             updateCount();
@@ -866,6 +927,24 @@ $(function () {
             addTeam(teamId, teamText, logoPath, badgeText, event);
         });
 
+        $picker[0].addEventListener('ai:set-teams', function (event) {
+            const teams = Array.isArray(event.detail?.teams) ? event.detail.teams : [];
+            $selected.find('[data-team-card]').remove();
+            teams.slice(0, maxTeams).forEach(team => {
+                addTeam(
+                    parseInt(team.id, 10),
+                    team.text,
+                    team.logoPath || '',
+                    team.badgeText || '',
+                    null,
+                    true);
+            });
+            updateCount();
+            $status.text(teams.length
+                ? `${Math.min(teams.length, maxTeams)} teams added from the AI draft.`
+                : 'The AI draft selected no attending teams.');
+        });
+
         $(document).on('click', function (event) {
             if (!$(event.target).closest($picker).length) {
                 closeResults();
@@ -875,3 +954,294 @@ $(function () {
         updateCount();
     });
 });
+
+// Categorized global search on the home page.
+(() => {
+    const root = document.querySelector('[data-global-search]');
+    if (!root) return;
+
+    const input = root.querySelector('.global-search__input');
+    const panel = root.querySelector('[data-global-search-results]');
+    const spinner = root.querySelector('[data-global-search-spinner]');
+    const clearButton = root.querySelector('[data-global-search-clear]');
+    const shortcut = root.querySelector('.global-search__shortcut');
+    const status = root.querySelector('[data-global-search-status]');
+    const searchUrl = root.dataset.searchUrl;
+    const minimumLength = 2;
+    let debounceHandle;
+    let activeRequest;
+    let activeIndex = -1;
+
+    const element = (tagName, className, text) => {
+        const node = document.createElement(tagName);
+        if (className) node.className = className;
+        if (text !== undefined && text !== null) node.textContent = text;
+        return node;
+    };
+
+    const setOpen = (isOpen) => {
+        panel.hidden = !isOpen;
+        input.setAttribute('aria-expanded', String(isOpen));
+        if (!isOpen) {
+            input.removeAttribute('aria-activedescendant');
+            activeIndex = -1;
+        }
+    };
+
+    const setLoading = (isLoading) => {
+        root.classList.toggle('global-search--loading', isLoading);
+        spinner.setAttribute('aria-hidden', String(!isLoading));
+    };
+
+    const appendHighlightedText = (container, value, query) => {
+        const text = value || '';
+        const matchIndex = text.toLocaleLowerCase().indexOf(query.toLocaleLowerCase());
+        if (matchIndex < 0) {
+            container.textContent = text;
+            return;
+        }
+
+        container.append(document.createTextNode(text.slice(0, matchIndex)));
+        container.append(element('mark', 'global-search__match', text.slice(matchIndex, matchIndex + query.length)));
+        container.append(document.createTextNode(text.slice(matchIndex + query.length)));
+    };
+
+    const createImage = (source, alt, className) => {
+        const image = element('img', className);
+        image.src = source;
+        image.alt = alt;
+        image.loading = 'lazy';
+        image.decoding = 'async';
+        return image;
+    };
+
+    const createMedia = (type, item) => {
+        const media = element('span', `global-search__media global-search__media--${type}`);
+        if (item.imageUrl) {
+            media.append(createImage(item.imageUrl, '', 'global-search__media-image'));
+        } else if (type === 'team') {
+            media.append(element('span', 'global-search__team-fallback', item.fallback || item.subtitle || 'TEAM'));
+        } else if (type === 'page') {
+            media.append(element('span', 'global-search__page-icon', item.icon || '↗'));
+        } else {
+            media.append(element('span', 'global-search__event-fallback', '◆'));
+        }
+        return media;
+    };
+
+    const createResult = (type, item, query, optionIndex) => {
+        const link = element('a', `global-search__result global-search__result--${type}`);
+        link.href = item.url;
+        link.id = `global-search-option-${optionIndex}`;
+        link.setAttribute('role', 'option');
+        link.setAttribute('aria-selected', 'false');
+        link.dataset.searchOption = '';
+
+        link.append(createMedia(type, item));
+
+        const copy = element('span', 'global-search__copy');
+        const title = element('span', 'global-search__title');
+        appendHighlightedText(title, item.title, query);
+        copy.append(title);
+
+        const subtitle = element('span', 'global-search__subtitle');
+        if (item.flagUrl) {
+            subtitle.append(createImage(item.flagUrl, item.countryCode ? `${item.countryCode} flag` : '', 'global-search__flag'));
+        }
+        const subtitleText = element('span');
+        appendHighlightedText(subtitleText, item.subtitle, query);
+        subtitle.append(subtitleText);
+        copy.append(subtitle);
+        link.append(copy);
+
+        const trailing = element('span', 'global-search__trailing');
+        if (type === 'event' && item.isLive) {
+            trailing.append(element('span', 'global-search__live', 'Live'));
+        }
+        if (item.badge) {
+            trailing.append(element('span', 'global-search__badge', item.badge));
+        }
+        trailing.append(element('span', 'global-search__meta', item.meta));
+        trailing.append(element('span', 'global-search__arrow', '›'));
+        link.append(trailing);
+
+        link.addEventListener('pointermove', () => setActive(optionIndex));
+        return link;
+    };
+
+    const getOptions = () => Array.from(panel.querySelectorAll('[data-search-option]'));
+
+    const setActive = (index) => {
+        const options = getOptions();
+        if (!options.length) return;
+
+        activeIndex = (index + options.length) % options.length;
+        options.forEach((option, optionIndex) => {
+            const isActive = optionIndex === activeIndex;
+            option.classList.toggle('is-active', isActive);
+            option.setAttribute('aria-selected', String(isActive));
+        });
+        input.setAttribute('aria-activedescendant', options[activeIndex].id);
+        options[activeIndex].scrollIntoView({ block: 'nearest' });
+    };
+
+    const renderState = (titleText, detailText, stateClass = '') => {
+        panel.replaceChildren();
+        const stateNode = element('div', `global-search__state ${stateClass}`.trim());
+        stateNode.append(element('span', 'global-search__state-icon', stateClass.includes('error') ? '!' : '⌕'));
+        stateNode.append(element('strong', '', titleText));
+        stateNode.append(element('span', '', detailText));
+        panel.append(stateNode);
+        setOpen(true);
+    };
+
+    const renderLoading = () => {
+        panel.replaceChildren();
+        const loading = element('div', 'global-search__skeletons');
+        for (let index = 0; index < 3; index += 1) {
+            const row = element('div', 'global-search__skeleton');
+            row.append(element('span', 'global-search__skeleton-media'));
+            const lines = element('span', 'global-search__skeleton-lines');
+            lines.append(element('span'));
+            lines.append(element('span'));
+            row.append(lines);
+            loading.append(row);
+        }
+        panel.append(loading);
+        setOpen(true);
+    };
+
+    const renderResults = (data, query) => {
+        panel.replaceChildren();
+        activeIndex = -1;
+        let optionIndex = 0;
+        const groups = [
+            { key: 'players', label: 'Players', type: 'player' },
+            { key: 'teams', label: 'Teams', type: 'team' },
+            { key: 'events', label: 'Events', type: 'event' },
+            { key: 'pages', label: 'Pages', type: 'page' }
+        ];
+
+        groups.forEach(group => {
+            const items = Array.isArray(data[group.key]) ? data[group.key] : [];
+            if (!items.length) return;
+
+            const section = element('section', `global-search__group global-search__group--${group.type}`);
+            section.setAttribute('role', 'group');
+            section.setAttribute('aria-label', group.label);
+
+            const heading = element('div', 'global-search__heading');
+            const headingLabel = element('span', 'global-search__heading-label');
+            headingLabel.append(element('span', 'global-search__heading-dot'));
+            headingLabel.append(document.createTextNode(group.label));
+            heading.append(headingLabel);
+            heading.append(element('span', 'global-search__count', String(items.length)));
+            section.append(heading);
+
+            items.forEach(item => {
+                section.append(createResult(group.type, item, query, optionIndex));
+                optionIndex += 1;
+            });
+            panel.append(section);
+        });
+
+        if (!optionIndex) {
+            renderState(`No results for “${query}”`, 'Try a page, player nickname, team tag, or event name.');
+            status.textContent = `No results found for ${query}.`;
+            return;
+        }
+
+        const footer = element('div', 'global-search__footer');
+        footer.append(element('span', '', `${data.total ?? optionIndex} result${optionIndex === 1 ? '' : 's'}`));
+        footer.append(element('span', '', '↑↓ Navigate  ·  Enter Open'));
+        panel.append(footer);
+        setOpen(true);
+        status.textContent = `${data.total ?? optionIndex} results found across pages, players, teams, and events.`;
+    };
+
+    const runSearch = async (query) => {
+        if (activeRequest) activeRequest.abort();
+        activeRequest = new AbortController();
+        setLoading(true);
+        renderLoading();
+
+        try {
+            const response = await fetch(`${searchUrl}?query=${encodeURIComponent(query)}`, {
+                signal: activeRequest.signal,
+                headers: { Accept: 'application/json' }
+            });
+            if (!response.ok) throw new Error(`Search returned ${response.status}`);
+            const data = await response.json();
+            if (input.value.trim() !== query) return;
+            renderResults(data, query);
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                renderState('Search is temporarily unavailable', 'Please wait a moment and try again.', 'global-search__state--error');
+                status.textContent = 'Search is temporarily unavailable.';
+            }
+        } finally {
+            if (input.value.trim() === query) setLoading(false);
+        }
+    };
+
+    input.addEventListener('input', () => {
+        const query = input.value.trim();
+        clearButton.hidden = !input.value;
+        shortcut.hidden = Boolean(input.value);
+        window.clearTimeout(debounceHandle);
+        if (activeRequest) activeRequest.abort();
+        setLoading(false);
+
+        if (query.length < minimumLength) {
+            panel.replaceChildren();
+            setOpen(false);
+            status.textContent = query ? 'Type at least two characters to search.' : '';
+            return;
+        }
+
+        debounceHandle = window.setTimeout(() => runSearch(query), 220);
+    });
+
+    input.addEventListener('keydown', event => {
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            const options = getOptions();
+            if (!options.length) return;
+            event.preventDefault();
+            setActive(activeIndex + (event.key === 'ArrowDown' ? 1 : -1));
+        } else if (event.key === 'Enter' && activeIndex >= 0) {
+            event.preventDefault();
+            getOptions()[activeIndex]?.click();
+        } else if (event.key === 'Escape') {
+            setOpen(false);
+        }
+    });
+
+    input.addEventListener('focus', () => {
+        if (input.value.trim().length >= minimumLength && panel.childElementCount) setOpen(true);
+    });
+
+    clearButton.addEventListener('click', () => {
+        input.value = '';
+        clearButton.hidden = true;
+        shortcut.hidden = false;
+        if (activeRequest) activeRequest.abort();
+        setLoading(false);
+        panel.replaceChildren();
+        setOpen(false);
+        status.textContent = '';
+        input.focus();
+    });
+
+    document.addEventListener('pointerdown', event => {
+        if (!root.contains(event.target)) setOpen(false);
+    });
+
+    document.addEventListener('keydown', event => {
+        const target = event.target;
+        const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target?.isContentEditable;
+        if (event.key === '/' && !isTyping && !event.ctrlKey && !event.metaKey && !event.altKey) {
+            event.preventDefault();
+            input.focus();
+        }
+    });
+})();

@@ -18,6 +18,7 @@ public class EfMatchRepository : IMatchRepository
     {
         return _context.Matches
             .Include(match => match.Event)
+                .ThenInclude(eventItem => eventItem!.EventVenue)
             .Include(match => match.TeamA)
             .Include(match => match.TeamB)
             .Include(match => match.Maps)
@@ -29,6 +30,7 @@ public class EfMatchRepository : IMatchRepository
     {
         return _context.Matches
             .Include(match => match.Event)
+                .ThenInclude(eventItem => eventItem!.EventVenue)
             .Include(match => match.TeamA)
             .Include(match => match.TeamB)
             .Include(match => match.Maps)

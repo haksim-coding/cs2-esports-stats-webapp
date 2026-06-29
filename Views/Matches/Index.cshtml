@@ -6,6 +6,8 @@
     var upcomingMatches = Model.Where(match => !match.IsFinished)
         .OrderBy(match => match.ScheduledAtUtc)
         .ToList();
+    const int initialUpcomingMatchCount = 8;
+    var hiddenUpcomingMatchCount = Math.Max(0, upcomingMatches.Count - initialUpcomingMatchCount);
     var finishedMatches = Model.Where(match => match.IsFinished)
         .OrderByDescending(match => match.ScheduledAtUtc)
         .ToList();
@@ -45,7 +47,7 @@
                     <th class="text-end pe-4">Status</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="upcoming-matches-list">
             @if (upcomingMatches.Count == 0)
             {
                 <tr>
@@ -54,11 +56,14 @@
             }
             else
             {
-                foreach (var match in upcomingMatches)
+                for (var upcomingMatchIndex = 0; upcomingMatchIndex < upcomingMatches.Count; upcomingMatchIndex++)
                 {
+                    var match = upcomingMatches[upcomingMatchIndex];
                     var teamALogoPath = match.TeamA is not null ? TeamLogoResolver.GetLogoPath(match.TeamA.Name, match.TeamA.Tag) : string.Empty;
                     var teamBLogoPath = match.TeamB is not null ? TeamLogoResolver.GetLogoPath(match.TeamB.Name, match.TeamB.Tag) : string.Empty;
-                    <tr class="clickable-row border-top border-secondary" onclick="window.location='@Url.Action("Details", "Matches", new { id = match.Id })'">
+                    <tr class="clickable-row border-top border-secondary @(upcomingMatchIndex >= initialUpcomingMatchCount ? "upcoming-match-row--extra" : string.Empty)"
+                        hidden="@(upcomingMatchIndex >= initialUpcomingMatchCount ? "hidden" : null)"
+                        onclick="window.location='@Url.Action("Details", "Matches", new { id = match.Id })'">
                         <td class="ps-4">
                             <div class="d-flex flex-column gap-2">
                                 <span class="badge border border-info align-self-start px-2 py-1 fw-semibold" style="background: rgba(17, 24, 39, 0.94); color: #E0F2FE; border-color: rgba(34, 211, 238, 0.4) !important;">Upcoming</span>
@@ -107,6 +112,18 @@
             </tbody>
         </table>
     </div>
+    @if (hiddenUpcomingMatchCount > 0)
+    {
+        <div class="d-flex justify-content-center px-4 py-3 border-top" data-upcoming-matches-footer style="border-color: rgba(255,255,255,0.08) !important;">
+            <button type="button"
+                    class="btn btn-outline-info px-4"
+                    data-show-upcoming-matches
+                    aria-controls="upcoming-matches-list"
+                    aria-expanded="false">
+                Show more (@hiddenUpcomingMatchCount)
+            </button>
+        </div>
+    }
 </section>
 
 <section class="cs2-glass-card shadow-lg overflow-hidden border-0">
@@ -198,3 +215,21 @@
         color: inherit !important;
     }
 </style>
+
+@section Scripts {
+    <script>
+        (() => {
+            const showMoreButton = document.querySelector('[data-show-upcoming-matches]');
+            if (!showMoreButton) return;
+
+            showMoreButton.addEventListener('click', () => {
+                document.querySelectorAll('.upcoming-match-row--extra').forEach(row => {
+                    row.hidden = false;
+                });
+
+                showMoreButton.setAttribute('aria-expanded', 'true');
+                document.querySelector('[data-upcoming-matches-footer]')?.remove();
+            });
+        })();
+    </script>
+}

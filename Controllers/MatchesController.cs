@@ -12,13 +12,11 @@ public class MatchesController : Controller
 {
     private readonly IMatchRepository _matchRepository;
     private readonly IEventRepository _eventRepository;
-    private readonly ITeamRepository _teamRepository;
 
-    public MatchesController(IMatchRepository matchRepository, IEventRepository eventRepository, ITeamRepository teamRepository)
+    public MatchesController(IMatchRepository matchRepository, IEventRepository eventRepository)
     {
         _matchRepository = matchRepository;
         _eventRepository = eventRepository;
-        _teamRepository = teamRepository;
     }
 
     public IActionResult Index()
@@ -36,6 +34,27 @@ public class MatchesController : Controller
         }
 
         return View(match);
+    }
+
+    [HttpGet]
+    [Authorize(Roles = EventRoleHelper.SuperAdminOnlyRoles)]
+    public IActionResult EventTeams(int eventId)
+    {
+        if (!EventRoleHelper.CanManageRosterContent(User))
+        {
+            return NotFound();
+        }
+
+        var eventItem = _eventRepository.GetById(eventId);
+        if (eventItem is null)
+        {
+            return NotFound();
+        }
+
+        return Json(eventItem.Teams
+            .OrderBy(team => team.WorldRanking <= 0 ? int.MaxValue : team.WorldRanking)
+            .ThenBy(team => team.Name)
+            .Select(team => new { team.Id, team.Name }));
     }
 
     [HttpGet]
@@ -190,8 +209,16 @@ public class MatchesController : Controller
 
     private void PopulateLookups(MatchCreateModel model)
     {
-        ViewBag.Events = new SelectList(_eventRepository.GetAll().OrderBy(eventItem => eventItem.StartDateUtc).ToList(), nameof(Event.Id), nameof(Event.Name), model.EventId);
-        ViewBag.TeamOptions = new SelectList(_teamRepository.GetAll().OrderBy(team => team.WorldRanking).ToList(), nameof(Team.Id), nameof(Team.Name));
+        var events = _eventRepository.GetAll().OrderBy(eventItem => eventItem.StartDateUtc).ToList();
+        var selectedEventTeams = events
+            .FirstOrDefault(eventItem => eventItem.Id == model.EventId)?
+            .Teams
+            .OrderBy(team => team.WorldRanking <= 0 ? int.MaxValue : team.WorldRanking)
+            .ThenBy(team => team.Name)
+            .ToList() ?? [];
+
+        ViewBag.Events = new SelectList(events, nameof(Event.Id), nameof(Event.Name), model.EventId);
+        ViewBag.TeamOptions = new SelectList(selectedEventTeams, nameof(Team.Id), nameof(Team.Name));
     }
 
     private void PrepareMapRows(MatchCreateModel model)
@@ -281,6 +308,25 @@ public class MatchesController : Controller
 
         UpdateSeriesScores(model);
 
+        var selectedEvent = _eventRepository.GetById(model.EventId);
+        if (selectedEvent is null)
+        {
+            ModelState.AddModelError(nameof(model.EventId), "The selected event could not be found.");
+        }
+        else
+        {
+            var eventTeamIds = selectedEvent.Teams.Select(team => team.Id).ToHashSet();
+            if (!eventTeamIds.Contains(model.TeamAId))
+            {
+                ModelState.AddModelError(nameof(model.TeamAId), "Team A must be a team participating in the selected event.");
+            }
+
+            if (!eventTeamIds.Contains(model.TeamBId))
+            {
+                ModelState.AddModelError(nameof(model.TeamBId), "Team B must be a team participating in the selected event.");
+            }
+        }
+
         if (model.TeamAId == model.TeamBId)
         {
             ModelState.AddModelError(nameof(model.TeamBId), "Team A and Team B must be different teams.");
@@ -291,15 +337,20 @@ public class MatchesController : Controller
             ModelState.AddModelError(nameof(model.FinishedAtUtc), "Finished date is required when the match is marked finished.");
         }
 
-        if (mapRows.Count < minimumMapCount)
-        {
-            ModelState.AddModelError(nameof(model.Maps), $"At least {minimumMapCount} map result(s) are required for {MatchDisplayHelper.GetFormatLabel(model.Format)}.");
-        }
-
         if (model.FinishedAtUtc.HasValue)
         {
             var seriesScoreA = model.TeamAScore;
             var seriesScoreB = model.TeamBScore;
+
+            if (mapRows.Count < minimumMapCount)
+            {
+                ModelState.AddModelError(nameof(model.Maps), $"At least {minimumMapCount} map result(s) are required for a finished {MatchDisplayHelper.GetFormatLabel(model.Format)} match.");
+            }
+
+            if (model.FinishedAtUtc.Value < model.ScheduledAtUtc)
+            {
+                ModelState.AddModelError(nameof(model.FinishedAtUtc), "Finished date and time must be on or after the match start date and time.");
+            }
 
             if (seriesScoreA == seriesScoreB)
             {
@@ -329,11 +380,45 @@ public class MatchesController : Controller
             {
                 ModelState.AddModelError(nameof(model.Maps), $"Enter both scores for map {mapRow.MapSequence}.");
             }
+            else
+            {
+                ValidateMapScore(model, mapRow);
+            }
 
             if (!usedMapSequences.Add(mapRow.MapSequence))
             {
                 ModelState.AddModelError(nameof(model.Maps), $"Map {mapRow.MapSequence} is duplicated.");
             }
+        }
+    }
+
+    private void ValidateMapScore(MatchCreateModel model, MatchMapInputModel mapRow)
+    {
+        var scoreA = mapRow.TeamAScore.GetValueOrDefault();
+        var scoreB = mapRow.TeamBScore.GetValueOrDefault();
+        var mapIndex = model.Maps.IndexOf(mapRow);
+        var scoreKey = mapIndex >= 0
+            ? $"{nameof(model.Maps)}[{mapIndex}].{nameof(mapRow.TeamBScore)}"
+            : nameof(model.Maps);
+
+        if (scoreA == scoreB)
+        {
+            ModelState.AddModelError(scoreKey, $"Map {mapRow.MapSequence} cannot end in a tie.");
+            return;
+        }
+
+        var winningScore = Math.Max(scoreA, scoreB);
+        var losingScore = Math.Min(scoreA, scoreB);
+
+        if (!mapRow.WentToOvertime && (winningScore != 13 || losingScore >= 12))
+        {
+            ModelState.AddModelError(scoreKey, $"Map {mapRow.MapSequence} has an invalid regulation score. The winner must have 13 rounds and the loser no more than 11.");
+            return;
+        }
+
+        if (mapRow.WentToOvertime && (winningScore < 16 || losingScore < 12 || winningScore - losingScore < 2))
+        {
+            ModelState.AddModelError(scoreKey, $"Map {mapRow.MapSequence} has an invalid overtime score. The winner needs at least 16 rounds and a margin of at least 2 rounds.");
         }
     }
 

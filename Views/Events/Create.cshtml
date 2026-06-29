@@ -26,6 +26,32 @@ var lockOrganizer = (bool?)ViewBag.LockOrganizer == true;
         @Html.AntiForgeryToken()
         <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
 
+        <div class="col-12">
+            <section class="ai-event-draft" aria-labelledby="ai-event-draft-title">
+                <div class="ai-event-draft__heading">
+                    <div>
+                        <span class="ai-event-draft__eyebrow"><i class="bi bi-stars" aria-hidden="true"></i> AI assistant</span>
+                        <h2 class="h5 mb-1" id="ai-event-draft-title">Draft the event from a prompt</h2>
+                        <p class="text-muted small mb-0">AI fills the form only. Review the draft and use Create to save it.</p>
+                    </div>
+                </div>
+                <label class="form-label text-light mt-3" for="AiEventPrompt">Describe the event</label>
+                <textarea class="form-control cs2-form-control"
+                          id="AiEventPrompt"
+                          rows="3"
+                          maxlength="2000"
+                          placeholder="Create an ESL event called IEM Zagreb, starting 15 July 2026, with a $250,000 prize pool."
+                          data-ai-event-prompt></textarea>
+                <div class="d-flex flex-wrap align-items-center gap-3 mt-3">
+                    <button class="btn btn-outline-info" type="button" data-ai-event-submit>
+                        <span data-ai-event-button-label><i class="bi bi-stars" aria-hidden="true"></i> Generate draft</span>
+                        <span data-ai-event-button-loading hidden><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Generating...</span>
+                    </button>
+                    <span class="small" role="status" aria-live="polite" data-ai-event-status></span>
+                </div>
+            </section>
+        </div>
+
         <div class="col-md-6">
             <label asp-for="Name" class="form-label text-light"></label>
             <input asp-for="Name" class="form-control cs2-form-control" />
@@ -126,6 +152,130 @@ var lockOrganizer = (bool?)ViewBag.LockOrganizer == true;
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
+        (() => {
+            const form = document.querySelector('form[action="/events/create"]');
+            const prompt = form?.querySelector('[data-ai-event-prompt]');
+            const submit = form?.querySelector('[data-ai-event-submit]');
+            const status = form?.querySelector('[data-ai-event-status]');
+            const buttonLabel = form?.querySelector('[data-ai-event-button-label]');
+            const buttonLoading = form?.querySelector('[data-ai-event-button-loading]');
+
+            if (!form || !prompt || !submit || !status || !buttonLabel || !buttonLoading) {
+                return;
+            }
+
+            const setValue = (name, value) => {
+                if (value === null || value === undefined) return;
+                const field = form.elements.namedItem(name);
+                if (field) {
+                    field.value = String(value);
+                    field.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            };
+
+            const readDate = name => {
+                const hidden = form.elements.namedItem(name);
+                const value = hidden?.value ? new Date(hidden.value) : null;
+                return value && !Number.isNaN(value.getTime()) ? value : null;
+            };
+
+            const setDate = (name, value) => {
+                if (!value) return;
+                const hidden = form.elements.namedItem(name);
+                const date = new Date(value);
+                if (!hidden || Number.isNaN(date.getTime())) return;
+
+                const pickerInput = hidden.closest('[data-flatpickr-picker]')?.querySelector('[data-flatpickr-input]');
+                if (pickerInput?._flatpickr) {
+                    pickerInput._flatpickr.setDate(date, true);
+                } else {
+                    hidden.value = date.toISOString();
+                    hidden.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            };
+
+            const applyDraft = (draft, selectedTeams) => {
+                const previousStart = readDate('StartDateUtc');
+                const previousEnd = readDate('EndDateUtc');
+                const duration = previousStart && previousEnd ? previousEnd - previousStart : null;
+
+                setValue('Name', draft.name);
+                setValue('Organizer', draft.organizer);
+                const tiers = { Major: 0, S: 1, A: 2, B: 3, C: 4 };
+                setValue('Tier', tiers[draft.tier] ?? draft.tier);
+                setValue('PrizePoolUsd', draft.prizePoolUsd);
+                setValue('EventVenueId', draft.eventVenueId);
+
+                if (draft.isLan !== null && draft.isLan !== undefined) {
+                    const isLan = form.elements.namedItem('IsLan');
+                    if (isLan) isLan.checked = draft.isLan;
+                }
+
+                setDate('StartDateUtc', draft.startDateUtc);
+                if (draft.endDateUtc) {
+                    setDate('EndDateUtc', draft.endDateUtc);
+                } else if (draft.startDateUtc && duration !== null && duration >= 0) {
+                    setDate('EndDateUtc', new Date(new Date(draft.startDateUtc).getTime() + duration).toISOString());
+                }
+
+                if (draft.selectedTeamIds !== null && draft.selectedTeamIds !== undefined) {
+                    form.querySelector('[data-team-picker]')?.dispatchEvent(new CustomEvent('ai:set-teams', {
+                        detail: { teams: selectedTeams || [] }
+                    }));
+                }
+            };
+
+            const getError = payload => {
+                if (payload?.errors && Array.isArray(payload.errors)) return payload.errors.join(' ');
+                if (payload?.errors && typeof payload.errors === 'object') {
+                    return Object.values(payload.errors).flat().join(' ');
+                }
+                return payload?.detail || payload?.message || payload?.title || 'The draft could not be generated.';
+            };
+
+            submit.addEventListener('click', async () => {
+                const text = prompt.value.trim();
+                if (text.length < 5) {
+                    status.className = 'small text-danger';
+                    status.textContent = 'Describe the event in at least 5 characters.';
+                    prompt.focus();
+                    return;
+                }
+
+                submit.disabled = true;
+                buttonLabel.hidden = true;
+                buttonLoading.hidden = false;
+                status.className = 'small text-muted';
+                status.textContent = 'Turning your prompt into form fields...';
+
+                const body = new FormData();
+                body.append('Prompt', text);
+                body.append('__RequestVerificationToken', form.querySelector('[name="__RequestVerificationToken"]').value);
+
+                try {
+                    const response = await fetch('/events/ai-draft', {
+                        method: 'POST',
+                        body,
+                        headers: { Accept: 'application/json' }
+                    });
+                    const payload = await response.json().catch(() => ({}));
+                    if (!response.ok) throw new Error(getError(payload));
+
+                    applyDraft(payload.draft, payload.selectedTeams);
+                    status.className = 'small text-success';
+                    status.textContent = 'Draft applied. Review every field before creating the event.';
+                    form.querySelector('[name="Name"]')?.focus();
+                } catch (error) {
+                    status.className = 'small text-danger';
+                    status.textContent = error.message || 'The draft could not be generated.';
+                } finally {
+                    submit.disabled = false;
+                    buttonLabel.hidden = false;
+                    buttonLoading.hidden = true;
+                }
+            });
+        })();
+
         (() => {
             const input = document.querySelector('.event-banner-dropzone__input');
             const fileName = document.querySelector('[data-banner-file-name]');

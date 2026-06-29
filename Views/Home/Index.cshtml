@@ -39,6 +39,39 @@
     <p class="lead text-muted mb-4 mx-auto" style="max-width: 600px;">
         The elite platform for competitive CS2 analytics, delivering precision data and tracking for the best players, teams, and tournaments worldwide.
     </p>
+    <div class="global-search mx-auto mb-4"
+         data-global-search
+         data-search-url="@Url.Action("Search", "Home")">
+        <div class="global-search__field">
+            <span class="global-search__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m20 20-4-4"></path>
+                </svg>
+            </span>
+            <label class="visually-hidden" for="global-search-input">Search players, teams, and events</label>
+            <input id="global-search-input"
+                   class="global-search__input"
+                   type="search"
+                   placeholder="Search players, teams, and events..."
+                   autocomplete="off"
+                   spellcheck="false"
+                   role="combobox"
+                   aria-autocomplete="list"
+                   aria-expanded="false"
+                   aria-controls="global-search-results" />
+            <span class="global-search__spinner" data-global-search-spinner aria-hidden="true"></span>
+            <button class="global-search__clear" type="button" data-global-search-clear aria-label="Clear search" hidden>&times;</button>
+            <span class="global-search__shortcut" aria-hidden="true">/</span>
+        </div>
+        <div id="global-search-results"
+             class="global-search__panel"
+             data-global-search-results
+             role="listbox"
+             aria-label="Search results"
+             hidden></div>
+        <p class="visually-hidden" data-global-search-status aria-live="polite"></p>
+    </div>
     <div class="d-flex flex-wrap justify-content-center gap-3">
         <a class="btn btn-outline-info rounded-pill px-4" asp-controller="Teams" asp-action="Index">Top Teams</a>
         <a class="btn btn-outline-primary rounded-pill px-4" asp-controller="Events" asp-action="Index">Live Events</a>

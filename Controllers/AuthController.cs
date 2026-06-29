@@ -6,11 +6,19 @@ using Microsoft.EntityFrameworkCore;
 using cs2_esports.Helpers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication;
+using System.Security.Claims;
+using System.ComponentModel.DataAnnotations;
 
 namespace cs2_esports.Controllers;
 
 public class AuthController : Controller
 {
+    private static readonly HashSet<string> SupportedExternalProviders = new(StringComparer.Ordinal)
+    {
+        "Google"
+    };
+
     private readonly IForumRepository _forumRepository;
     private readonly Cs2ScopeDbContext _dbContext;
     private readonly UserManager<AppUser> _userManager;
@@ -71,7 +79,6 @@ public class AuthController : Controller
                 SetAuthenticatedAdminUser(legacyAdminUserId.Value);
             }
 
-            TempData["LoginMessage"] = $"Welcome back, {identityUser.DisplayName}.";
             return LocalRedirect(returnUrl ?? Url.Action("Index", "Home")!);
         }
 
@@ -99,8 +106,136 @@ public class AuthController : Controller
 
         await _signInManager.SignInAsync(identityAdminUser, isPersistent: false);
         SetAuthenticatedAdminUser(adminUser.Id);
-        TempData["LoginMessage"] = $"Welcome back, {adminUser.DisplayName}.";
         return LocalRedirect(returnUrl ?? Url.Action("Index", "Home")!);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [AllowAnonymous]
+    public async Task<IActionResult> ExternalLogin(string provider, string? returnUrl = null)
+    {
+        var configuredProviders = await _signInManager.GetExternalAuthenticationSchemesAsync();
+        if (!SupportedExternalProviders.Contains(provider) ||
+            !configuredProviders.Any(item => string.Equals(item.Name, provider, StringComparison.Ordinal)))
+        {
+            return RedirectToAction(GetAuthEntryAction(), new { returnUrl });
+        }
+
+        await _signInManager.SignOutAsync();
+        ClearAuthenticationSession();
+
+        var callbackUrl = Url.Action(nameof(ExternalLoginCallback), "Auth", new { returnUrl });
+        var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, callbackUrl);
+        return Challenge(properties, provider);
+    }
+
+    [HttpGet]
+    [AllowAnonymous]
+    public async Task<IActionResult> ExternalLoginCallback(string? returnUrl = null, string? remoteError = null)
+    {
+        var destination = GetSafeReturnUrl(returnUrl);
+        if (!string.IsNullOrWhiteSpace(remoteError))
+        {
+            return RedirectToAction(nameof(Login), new { returnUrl });
+        }
+
+        var loginInfo = await _signInManager.GetExternalLoginInfoAsync();
+        if (loginInfo is null || !SupportedExternalProviders.Contains(loginInfo.LoginProvider))
+        {
+            return RedirectToAction(nameof(Login), new { returnUrl });
+        }
+
+        var linkedUser = await _userManager.FindByLoginAsync(loginInfo.LoginProvider, loginInfo.ProviderKey);
+        if (linkedUser is not null)
+        {
+            if (linkedUser.LegacyAdminUserId.HasValue || !linkedUser.LegacyForumUserId.HasValue)
+            {
+                return RedirectToAction(nameof(Login), new { returnUrl });
+            }
+
+            ClearAuthenticationSession();
+            await _signInManager.SignInAsync(linkedUser, isPersistent: false, loginInfo.LoginProvider);
+            SetAuthenticatedForumUser(linkedUser.LegacyForumUserId.Value);
+
+            var forumUser = await _dbContext.ForumUsers.FindAsync(linkedUser.LegacyForumUserId.Value);
+            if (forumUser is not null)
+            {
+                forumUser.LastActiveAtUtc = DateTime.UtcNow;
+                await _dbContext.SaveChangesAsync();
+            }
+
+            return LocalRedirect(destination);
+        }
+
+        var email = loginInfo.Principal.FindFirstValue(ClaimTypes.Email)?.Trim();
+        if (string.IsNullOrWhiteSpace(email) || !new EmailAddressAttribute().IsValid(email))
+        {
+            return RedirectToAction(nameof(Login), new { returnUrl });
+        }
+
+        var existingIdentity = await _userManager.FindByEmailAsync(email);
+        var normalizedEmail = email.ToLowerInvariant();
+        var existingLegacyUser = await _dbContext.Set<cs2_esports.Models.User>()
+            .AnyAsync(user => user.Email.ToLower() == normalizedEmail);
+        if (existingIdentity is not null || existingLegacyUser)
+        {
+            return RedirectToAction(nameof(Login), new { returnUrl });
+        }
+
+        var displayName = loginInfo.Principal.FindFirstValue(ClaimTypes.Name)?.Trim();
+        if (string.IsNullOrWhiteSpace(displayName))
+        {
+            displayName = email.Split('@')[0];
+        }
+        displayName = displayName[..Math.Min(displayName.Length, 60)];
+
+        var username = await CreateUniqueExternalUsernameAsync(displayName, email);
+        var now = DateTime.UtcNow;
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
+        var forumAccount = new ForumUser
+        {
+            Username = username,
+            DisplayName = displayName,
+            Email = email,
+            CountryCode = "UN",
+            RegisteredAtUtc = now,
+            LastActiveAtUtc = now,
+            IsPremiumMember = false,
+            Password = "[EXTERNAL_IDENTITY_ACCOUNT]"
+        };
+        _dbContext.ForumUsers.Add(forumAccount);
+        await _dbContext.SaveChangesAsync();
+
+        var identityUser = new AppUser
+        {
+            UserName = username,
+            Email = email,
+            DisplayName = displayName,
+            CountryCode = "UN",
+            RegisteredAtUtc = now,
+            LegacyForumUserId = forumAccount.Id,
+            EmailConfirmed = true
+        };
+
+        var createResult = await _userManager.CreateAsync(identityUser);
+        if (!createResult.Succeeded)
+        {
+            await transaction.RollbackAsync();
+            return RedirectToAction(nameof(Login), new { returnUrl });
+        }
+
+        var addLoginResult = await _userManager.AddLoginAsync(identityUser, loginInfo);
+        if (!addLoginResult.Succeeded)
+        {
+            await transaction.RollbackAsync();
+            return RedirectToAction(nameof(Login), new { returnUrl });
+        }
+
+        await transaction.CommitAsync();
+        await _signInManager.SignInAsync(identityUser, isPersistent: false, loginInfo.LoginProvider);
+        SetAuthenticatedForumUser(forumAccount.Id);
+        return LocalRedirect(destination);
     }
 
     [HttpGet]
@@ -162,8 +297,6 @@ public class AuthController : Controller
 
         await _signInManager.SignInAsync(identityUser, isPersistent: false);
         SetAuthenticatedForumUser(createdUser.Id);
-        TempData["LoginMessage"] = $"Welcome, {createdUser.DisplayName}. Your account is ready.";
-
         return LocalRedirect(returnUrl ?? Url.Action("Index", "Home")!);
     }
 
@@ -172,7 +305,6 @@ public class AuthController : Controller
     {
         await _signInManager.SignOutAsync();
         ClearAuthenticationSession();
-        TempData["LoginMessage"] = "You have been logged out.";
         return RedirectToAction("Index", "Home");
     }
 
@@ -298,7 +430,6 @@ public class AuthController : Controller
         await _userManager.DeleteAsync(identityUser);
         await _signInManager.SignOutAsync();
         ClearAuthenticationSession();
-        TempData["LoginMessage"] = "Your account has been deleted.";
         return RedirectToAction("Index", "Home");
     }
 
@@ -333,5 +464,49 @@ public class AuthController : Controller
         HttpContext.Session.Remove(AuthSessionKeys.ForumUserId);
         HttpContext.Session.Remove(AuthSessionKeys.AdminUserId);
         HttpContext.Session.Remove(AuthSessionKeys.UserType);
+    }
+
+    private string GetSafeReturnUrl(string? returnUrl)
+    {
+        return Url.IsLocalUrl(returnUrl) ? returnUrl! : Url.Action("Index", "Home")!;
+    }
+
+    private string GetAuthEntryAction()
+    {
+        var referer = Request.GetTypedHeaders().Referer;
+        return string.Equals(referer?.AbsolutePath, Url.Action(nameof(Register)), StringComparison.OrdinalIgnoreCase)
+            ? nameof(Register)
+            : nameof(Login);
+    }
+
+    private async Task<string> CreateUniqueExternalUsernameAsync(string displayName, string email)
+    {
+        var source = string.IsNullOrWhiteSpace(displayName) ? email.Split('@')[0] : displayName;
+        var cleaned = new string(source
+            .Where(character => char.IsLetterOrDigit(character) || character is '-' or '_' or '.')
+            .ToArray());
+        if (cleaned.Length < 3)
+        {
+            cleaned = $"user{cleaned}";
+        }
+        cleaned = cleaned[..Math.Min(cleaned.Length, 32)];
+
+        for (var suffix = 0; suffix < 10_000; suffix++)
+        {
+            var candidate = suffix == 0 ? cleaned : $"{cleaned}{suffix}";
+            if (candidate.Length > 40)
+            {
+                candidate = candidate[..40];
+            }
+
+            if (await _userManager.FindByNameAsync(candidate) is null &&
+                !await _dbContext.Set<cs2_esports.Models.User>()
+                    .AnyAsync(user => user.Username.ToLower() == candidate.ToLower()))
+            {
+                return candidate;
+            }
+        }
+
+        return $"user{Guid.NewGuid():N}";
     }
 }

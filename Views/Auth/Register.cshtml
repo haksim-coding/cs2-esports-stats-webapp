@@ -15,7 +15,31 @@
                 <div class="auth-panel-accent auth-panel-accent--register"></div>
             </div>
 
-            <form asp-action="Register" method="post" class="p-4 p-md-5">
+            <div class="auth-social p-4 p-md-5 pb-md-4">
+                <div class="auth-social-heading">
+                    <span class="auth-social-kicker auth-social-kicker--register">Fast sign-up</span>
+                    <p class="text-muted small mb-0">Social sign-up creates a CS2Scope forum account.</p>
+                </div>
+
+                <div class="auth-social-actions">
+                    <form asp-controller="Auth" asp-action="ExternalLogin" method="post">
+                        <input type="hidden" name="provider" value="Google" />
+                        <input type="hidden" name="returnUrl" value="@(ViewData["ReturnUrl"] ?? string.Empty)" />
+                        <button type="submit" class="auth-social-button auth-social-button--google">
+                            <span class="auth-social-icon auth-social-icon--google" aria-hidden="true">G</span>
+                            <span>Sign up with Google</span>
+                        </button>
+                    </form>
+                </div>
+
+                <p class="auth-social-note mb-0">Your connected account gives you access to CS2Scope forum discussions.</p>
+            </div>
+
+            <div class="auth-method-divider px-4 px-md-5" aria-hidden="true">
+                <span>or create one manually</span>
+            </div>
+
+            <form asp-action="Register" method="post" class="p-4 p-md-5 pt-md-4">
                 <input type="hidden" name="returnUrl" value="@(ViewData["ReturnUrl"] ?? string.Empty)" />
                 <div asp-validation-summary="ModelOnly" class="text-danger mb-4 small fw-semibold auth-validation"></div>
                 

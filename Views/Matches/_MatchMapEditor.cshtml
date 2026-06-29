@@ -20,10 +20,10 @@
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4 border-bottom pb-3" style="border-color: rgba(255,255,255,0.08) !important;">
         <div>
             <h2 class="h5 text-info mb-1">Series maps</h2>
-            <p class="text-muted mb-0">Enter the result for each map in the series. Blank rows are ignored.</p>
+            <p class="text-muted mb-0">Enter map results for finished matches. Leave the rows blank while the match is unfinished.</p>
         </div>
         <div class="text-end d-flex flex-column align-items-end gap-2">
-            <div class="text-secondary small">Minimum maps needed</div>
+            <div class="text-secondary small">Maps needed to finish</div>
             <div class="text-light fw-semibold">@minimumMaps of @maxMaps</div>
             <button type="button" class="btn btn-outline-info btn-sm" data-match-map-reset>Reset map state</button>
         </div>
@@ -44,6 +44,8 @@
             <div class="series-score-hint text-secondary small mt-md-4 pt-md-2">Series score is calculated from the map wins below.</div>
         </div>
     </div>
+
+    <span asp-validation-for="Maps" class="text-danger small d-block mb-3"></span>
 
     <div class="match-map-editor__rows">
         @for (var index = 0; index < 5; index++)

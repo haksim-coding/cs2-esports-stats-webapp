@@ -1,6 +1,7 @@
 using cs2_esports.Data;
 using cs2_esports.Helpers;
 using cs2_esports.Models;
+using cs2_esports.Services.Auditing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,11 +14,16 @@ public class AdminFilesController : Controller
 {
     private readonly Cs2ScopeDbContext _dbContext;
     private readonly IWebHostEnvironment _environment;
+    private readonly IAuditLogService _auditLogService;
 
-    public AdminFilesController(Cs2ScopeDbContext dbContext, IWebHostEnvironment environment)
+    public AdminFilesController(
+        Cs2ScopeDbContext dbContext,
+        IWebHostEnvironment environment,
+        IAuditLogService auditLogService)
     {
         _dbContext = dbContext;
         _environment = environment;
+        _auditLogService = auditLogService;
     }
 
     [HttpGet("")]
@@ -44,8 +50,25 @@ public class AdminFilesController : Controller
         return View(new AdminFilesIndexViewModel
         {
             EventFiles = GetFiles("event", GetEventRoot(), "/images/events/banners", [".png"], eventAssignments),
-            PlayerFiles = GetFiles("player", GetPlayerRoot(), "/images/players", [".png", ".webp"], playerAssignments)
+            PlayerFiles = GetFiles("player", GetPlayerRoot(), "/images/players", [".png", ".webp"], playerAssignments),
+            LogFiles = _auditLogService.GetLogFiles()
+                .Select(file => new AdminLogFileItemViewModel
+                {
+                    FileName = file.FileName,
+                    FileSize = file.FileSize,
+                    LastModifiedAtUtc = file.LastModifiedAtUtc
+                })
+                .ToList()
         });
+    }
+
+    [HttpGet("logs/{fileName}")]
+    public IActionResult OpenLog(string fileName)
+    {
+        var filePath = _auditLogService.ResolveLogFile(fileName);
+        return filePath is null
+            ? NotFound()
+            : PhysicalFile(filePath, "application/x-ndjson", enableRangeProcessing: true);
     }
 
     [HttpPost("delete")]

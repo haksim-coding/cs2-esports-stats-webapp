@@ -2,10 +2,13 @@ using cs2_esports.Data;
 using cs2_esports.Helpers;
 using cs2_esports.Models;
 using cs2_esports.Repositories.Interfaces;
+using cs2_esports.Services.Ai;
+using cs2_esports.Services.Auditing;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.DataProtection;
 using System.Globalization;
 using cs2_esports.Repositories.Ef;
 
@@ -15,9 +18,22 @@ CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.GetCultureInfo("en-US");
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+    options.Filters.AddService<AuditLogActionFilter>());
+builder.Services.Configure<AuditLogOptions>(builder.Configuration.GetSection(AuditLogOptions.SectionName));
+builder.Services.AddSingleton<IAuditLogService, FileAuditLogService>();
+builder.Services.AddScoped<AuditLogActionFilter>();
 builder.Services.AddDistributedMemoryCache();
-builder.Services.AddSession();
+builder.Services.AddSession(options =>
+{
+    options.Cookie.IsEssential = true;
+    options.Cookie.HttpOnly = true;
+});
+if (builder.Environment.IsDevelopment())
+{
+    // Development logins should not survive stopping and restarting the app.
+    builder.Services.AddDataProtection().UseEphemeralDataProtectionProvider();
+}
 builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;
@@ -29,6 +45,24 @@ builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
 })
     .AddEntityFrameworkStores<Cs2ScopeDbContext>()
     .AddDefaultTokenProviders();
+
+var authentication = builder.Services.AddAuthentication();
+var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
+var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret))
+{
+    authentication.AddGoogle(options =>
+    {
+        options.ClientId = googleClientId;
+        options.ClientSecret = googleClientSecret;
+        options.Events.OnRedirectToAuthorizationEndpoint = context =>
+        {
+            context.Response.Redirect($"{context.RedirectUri}&prompt=select_account");
+            return Task.CompletedTask;
+        };
+    });
+}
+
 builder.Services.AddDbContext<Cs2ScopeDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Cs2ScopeDbContext")));
 
@@ -37,6 +71,32 @@ builder.Services.AddScoped<IEventRepository, EfEventRepository>();
 builder.Services.AddScoped<IMatchRepository, EfMatchRepository>();
 builder.Services.AddScoped<IPlayerRepository, EfPlayerRepository>();
 builder.Services.AddScoped<IForumRepository, EfForumRepository>();
+builder.Services.Configure<AiProviderOptions>(builder.Configuration.GetSection(AiProviderOptions.SectionName));
+builder.Services.PostConfigure<AiProviderOptions>(options =>
+{
+    if (string.IsNullOrWhiteSpace(options.ApiKey))
+    {
+        var environmentKey = options.Provider.Equals("Gemini", StringComparison.OrdinalIgnoreCase)
+            ? builder.Configuration["GEMINI_API_KEY"]
+            : builder.Configuration["OPENAI_API_KEY"];
+        options.ApiKey = environmentKey ?? string.Empty;
+    }
+});
+var aiProvider = builder.Configuration[$"{AiProviderOptions.SectionName}:Provider"] ?? "Gemini";
+if (aiProvider.Equals("Gemini", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddHttpClient<IAiEventDraftProvider, GeminiEventDraftProvider>(client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(30);
+    });
+}
+else
+{
+    builder.Services.AddHttpClient<IAiEventDraftProvider, OpenAiEventDraftProvider>(client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(30);
+    });
+}
 
 var app = builder.Build();
 

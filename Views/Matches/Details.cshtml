@@ -91,8 +91,11 @@
                 <div class="col-md-3 col-6">
                     <div class="esports-card h-100 p-3">
                         <div class="text-uppercase text-muted small fw-bold mb-1">Venue</div>
-                        <div class="text-light fw-semibold">@(Model.Event?.EventVenue?.City ?? "TBA")</div>
-                        <div class="text-secondary small">@(Model.Event?.EventVenue?.CountryCode ?? string.Empty)</div>
+                        <div class="text-light fw-semibold">@(Model.Event?.EventVenue?.Name ?? "TBA")</div>
+                        @if (Model.Event?.EventVenue is not null)
+                        {
+                            <div class="text-secondary small">@Model.Event.EventVenue.City, @Model.Event.EventVenue.CountryCode</div>
+                        }
                     </div>
                 </div>
                 <div class="col-md-3 col-6">

@@ -33,7 +33,7 @@ public static class IdentitySynchronizer
 
         foreach (var adminUser in adminUsers)
         {
-            var expectedPermissionGroup = EventRoleHelper.GetPrimaryRoleForAdminUser(adminUser.Username, adminUser.PermissionGroup);
+            var expectedPermissionGroup = GetPrimaryRoleForLegacyAdmin(adminUser.Username, adminUser.PermissionGroup);
             if (!string.Equals(adminUser.PermissionGroup, expectedPermissionGroup, StringComparison.Ordinal))
             {
                 adminUser.PermissionGroup = expectedPermissionGroup;
@@ -84,7 +84,7 @@ public static class IdentitySynchronizer
                 await userManager.UpdateAsync(identityUser);
             }
 
-            var rolesForUser = EventRoleHelper.GetRolesForAdminUser(adminUser.Username, adminUser.PermissionGroup);
+            var rolesForUser = new[] { GetPrimaryRoleForLegacyAdmin(adminUser.Username, adminUser.PermissionGroup) };
 
             var currentRoles = await userManager.GetRolesAsync(identityUser);
             var rolesToRemove = currentRoles.Where(role => !rolesForUser.Contains(role)).ToArray();
@@ -158,5 +158,30 @@ public static class IdentitySynchronizer
         }
 
         await dbContext.SaveChangesAsync();
+    }
+
+    private static string GetPrimaryRoleForLegacyAdmin(string username, string? permissionGroup)
+    {
+        var roleFromKnownAccount = username.Trim().ToLowerInvariant() switch
+        {
+            "admin_maksim" => EventRoleHelper.SuperAdminRole,
+            "blast_admin" => EventRoleHelper.BlastAdminRole,
+            "esl_admin" => EventRoleHelper.EslAdminRole,
+            _ => null
+        };
+
+        return roleFromKnownAccount ?? NormalizeLegacyPermissionGroup(permissionGroup);
+    }
+
+    private static string NormalizeLegacyPermissionGroup(string? permissionGroup)
+    {
+        return permissionGroup?.Trim() switch
+        {
+            EventRoleHelper.SuperAdminRole => EventRoleHelper.SuperAdminRole,
+            EventRoleHelper.BlastAdminRole => EventRoleHelper.BlastAdminRole,
+            EventRoleHelper.EslAdminRole => EventRoleHelper.EslAdminRole,
+            EventRoleHelper.TournamentAdminRole => EventRoleHelper.TournamentAdminRole,
+            _ => EventRoleHelper.TournamentAdminRole
+        };
     }
 }
